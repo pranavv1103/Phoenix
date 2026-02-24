@@ -6,6 +6,8 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import PostDetailPage from './pages/PostDetailPage';
 import CreatePostPage from './pages/CreatePostPage';
+import EditPostPage from './pages/EditPostPage';
+import AdminPage from './pages/AdminPage';
 
 function App() {
   return (
@@ -32,10 +34,26 @@ function App() {
             }
           />
           <Route
+            path="/posts/:id/edit"
+            element={
+              <ProtectedRoute>
+                <EditPostPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/create"
             element={
               <ProtectedRoute>
                 <CreatePostPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute>
+                <AdminPage />
               </ProtectedRoute>
             }
           />

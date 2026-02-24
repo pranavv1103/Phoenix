@@ -23,8 +23,8 @@ export default function RegisterPage() {
         email,
         password,
       });
-      const { token, email: userEmail, name: userName } = response.data.data;
-      login(token, { email: userEmail, name: userName });
+      const { token, email: userEmail, name: userName, role } = response.data.data;
+      login(token, { email: userEmail, name: userName, role });
       navigate('/');
     } catch (err) {
       setError(err.response?.data?.message || 'Registration failed');

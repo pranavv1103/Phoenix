@@ -18,8 +18,8 @@ export default function LoginPage() {
 
     try {
       const response = await client.post('/api/auth/login', { email, password });
-      const { token, email: userEmail, name } = response.data.data;
-      login(token, { email: userEmail, name });
+      const { token, email: userEmail, name, role } = response.data.data;
+      login(token, { email: userEmail, name, role });
       navigate('/');
     } catch (err) {
       setError(err.response?.data?.message || 'Login failed');

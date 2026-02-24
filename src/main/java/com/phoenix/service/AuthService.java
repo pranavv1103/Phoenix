@@ -47,6 +47,7 @@ public class AuthService {
                 .token(token)
                 .email(user.getEmail())
                 .name(user.getName())
+                .role(user.getRole().name().replace("ROLE_", ""))
                 .build();
     }
 
@@ -67,6 +68,7 @@ public class AuthService {
                 .token(token)
                 .email(user.getEmail())
                 .name(user.getName())
+                .role(user.getRole().name().replace("ROLE_", ""))
                 .build();
     }
 }

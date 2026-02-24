@@ -37,6 +37,17 @@ export default function Navbar() {
                   </svg>
                   Create Post
                 </Link>
+                {user?.role === 'ADMIN' && (
+                  <Link 
+                    to="/admin" 
+                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl font-semibold"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                    </svg>
+                    Admin
+                  </Link>
+                )}
                 <div className="flex items-center gap-3 px-4 py-2 rounded-xl bg-gradient-to-r from-white/20 to-white/10 backdrop-blur-md border border-white/30">
                   <div className="w-9 h-9 bg-gradient-to-br from-amber-400 via-orange-500 to-rose-500 rounded-full flex items-center justify-center text-sm font-bold shadow-lg ring-2 ring-white/50">
                     {user?.name?.charAt(0).toUpperCase()}
