@@ -10,6 +10,7 @@ import com.phoenix.exception.PostNotFoundException;
 import com.phoenix.exception.UnauthorizedException;
 import com.phoenix.repository.CommentRepository;
 import com.phoenix.repository.LikeRepository;
+import com.phoenix.repository.PaymentRepository;
 import com.phoenix.repository.PostRepository;
 import com.phoenix.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -37,6 +38,7 @@ public class PostService {
     private final UserRepository userRepository;
     private final LikeRepository likeRepository;
     private final CommentRepository commentRepository;
+    private final PaymentRepository paymentRepository;
 
     @Transactional(readOnly = true)
     public PagedResponse<PostResponse> getAllPosts(int page, int size, String sort) {
@@ -114,6 +116,8 @@ public class PostService {
         Post post = Post.builder()
                 .title(request.getTitle())
                 .content(request.getContent())
+                .isPremium(request.isPremium())
+                .price(request.getPrice())
                 .author(author)
                 .build();
 
@@ -132,6 +136,8 @@ public class PostService {
 
         post.setTitle(request.getTitle());
         post.setContent(request.getContent());
+        post.setPremium(request.isPremium());
+        post.setPrice(request.getPrice());
 
         Post updatedPost = postRepository.save(post);
         return convertToResponse(updatedPost);
@@ -160,19 +166,35 @@ public class PostService {
     private PostResponse convertToResponse(Post post) {
         long likeCount = likeRepository.countByPostId(post.getId());
         boolean likedByCurrentUser = false;
+        boolean paidByCurrentUser = false;
+        boolean isAuthor = false;
+
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        User currentUser = null;
         if (auth != null && auth.isAuthenticated() && !auth.getPrincipal().equals("anonymousUser")) {
-            userRepository.findByEmail(auth.getName()).ifPresent(user ->
-                likeRepository.existsByPostIdAndUserId(post.getId(), user.getId()));
-            // re-check with the actual user
-            likedByCurrentUser = userRepository.findByEmail(auth.getName())
-                    .map(user -> likeRepository.existsByPostIdAndUserId(post.getId(), user.getId()))
-                    .orElse(false);
+            currentUser = userRepository.findByEmail(auth.getName()).orElse(null);
         }
+
+        if (currentUser != null) {
+            final UUID userId = currentUser.getId();
+            likedByCurrentUser = likeRepository.existsByPostIdAndUserId(post.getId(), userId);
+            isAuthor = post.getAuthor().getId().equals(userId);
+            if (post.isPremium() && !isAuthor) {
+                paidByCurrentUser = paymentRepository
+                        .existsByPost_IdAndUser_IdAndStatus(post.getId(), userId, "COMPLETED");
+            }
+        }
+
+        // Gate premium content: show 100-word preview to non-paying / non-author users
+        String content = post.getContent();
+        if (post.isPremium() && !isAuthor && !paidByCurrentUser) {
+            content = truncateToWords(content, 100);
+        }
+
         return PostResponse.builder()
                 .id(post.getId())
                 .title(post.getTitle())
-                .content(post.getContent())
+                .content(content)
                 .authorName(post.getAuthor().getName())
                 .authorEmail(post.getAuthor().getEmail())
                 .createdAt(post.getCreatedAt())
@@ -180,6 +202,18 @@ public class PostService {
                 .commentCount(post.getComments() != null ? post.getComments().size() : 0)
                 .likeCount(likeCount)
                 .likedByCurrentUser(likedByCurrentUser)
+                .isPremium(post.isPremium())
+                .price(post.getPrice())
+                .paidByCurrentUser(paidByCurrentUser)
+                .author(isAuthor)
                 .build();
+    }
+
+    /** Truncate {@code text} to at most {@code maxWords} words, appending "..." if truncated. */
+    private String truncateToWords(String text, int maxWords) {
+        if (text == null || text.isBlank()) return text;
+        String[] words = text.trim().split("\\s+");
+        if (words.length <= maxWords) return text;
+        return String.join(" ", java.util.Arrays.copyOfRange(words, 0, maxWords)) + "...";
     }
 }

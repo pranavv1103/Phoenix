@@ -23,4 +23,8 @@ public class PostResponse {
     private int commentCount;
     private long likeCount;
     private boolean likedByCurrentUser;
+    private boolean isPremium;
+    private int price;
+    private boolean paidByCurrentUser;
+    private boolean author;
 }

@@ -239,9 +239,17 @@ export default function HomePage() {
                 >
                   <div className={`h-2 bg-gradient-to-r ${gradient}`}></div>
                   <div className={`bg-gradient-to-br ${bgGradient} p-8 transition-all duration-500 group-hover:opacity-90 dark:from-slate-900 dark:to-slate-950`}>
-                    <h2 className="text-2xl font-bold mb-3 text-gray-900 transition-all duration-300 line-clamp-2 dark:text-slate-100">
+                    <h2 className="text-2xl font-bold mb-1 text-gray-900 transition-all duration-300 line-clamp-2 dark:text-slate-100">
                       {post.title}
                     </h2>
+                    {post.isPremium && (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 mb-2 bg-gradient-to-r from-amber-400 to-orange-400 text-white text-xs font-bold rounded-full shadow-sm">
+                        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                        </svg>
+                        Premium • ₹{(post.price / 100).toFixed(0)}
+                      </span>
+                    )}
                     <p className="text-gray-700 mb-8 line-clamp-3 leading-relaxed dark:text-slate-300">{previewText}</p>
                     <div className="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-slate-700">
                       <div className="flex items-center gap-2">

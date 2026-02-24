@@ -15,4 +15,8 @@ public class PostRequest {
 
     @NotBlank(message = "Content is required")
     private String content;
+
+    private boolean isPremium = false;
+
+    private int price = 0;
 }

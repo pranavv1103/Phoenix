@@ -19,6 +19,7 @@ export default function PostDetailPage() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState('');
+  const [payLoading, setPayLoading] = useState(false);
 
   const fetchPost = useCallback(async () => {
     try {
@@ -58,6 +59,48 @@ export default function PostDetailPage() {
     fetchPost();
     fetchComments();
   }, [fetchPost, fetchComments]);
+
+  const handlePay = async () => {
+    if (!isAuthenticated) {
+      navigate('/login');
+      return;
+    }
+    setPayLoading(true);
+    try {
+      const orderRes = await client.post('/api/payments/create-order', { postId: id });
+      const { orderId, amount, currency, keyId } = orderRes.data;
+
+      const options = {
+        key: keyId,
+        amount: amount,
+        currency: currency,
+        name: 'Phoenix Blog',
+        description: post?.title,
+        order_id: orderId,
+        handler: async (response) => {
+          try {
+            await client.post('/api/payments/verify', {
+              razorpayOrderId: response.razorpay_order_id,
+              razorpayPaymentId: response.razorpay_payment_id,
+              razorpaySignature: response.razorpay_signature,
+            });
+            await fetchPost(); // reload full content
+          } catch {
+            alert('Payment verification failed. Please contact support.');
+          }
+        },
+        prefill: { email: user?.email || '' },
+        theme: { color: '#6366f1' },
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.open();
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to initiate payment');
+    } finally {
+      setPayLoading(false);
+    }
+  };
 
   const handleDelete = async () => {
     setDeleteError('');
@@ -128,7 +171,17 @@ export default function PostDetailPage() {
 
         <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl rounded-3xl shadow-2xl p-10 mb-8 animate-fade-in border border-white/50 dark:border-slate-700/50">
           <div className="mb-6">
-            <h1 className="text-5xl font-bold mb-4 text-gray-900 dark:text-slate-100 leading-tight">{post.title}</h1>
+            <div className="flex items-start gap-3 flex-wrap mb-4">
+              <h1 className="text-5xl font-bold text-gray-900 dark:text-slate-100 leading-tight">{post.title}</h1>
+              {post.isPremium && (
+                <span className="inline-flex items-center gap-1 px-3 py-1 bg-gradient-to-r from-amber-400 to-orange-400 text-white text-sm font-bold rounded-full shadow-md mt-2 whitespace-nowrap">
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                  </svg>
+                  Premium • ₹{(post.price / 100).toFixed(0)}
+                </span>
+              )}
+            </div>
             <div className="flex items-center gap-3 text-gray-600 dark:text-slate-400">
               <div className="flex items-center gap-2">
                 <div className="w-12 h-12 bg-gradient-to-br from-blue-500 via-violet-500 to-fuchsia-500 rounded-full flex items-center justify-center text-white font-bold shadow-lg ring-2 ring-white">
@@ -154,13 +207,68 @@ export default function PostDetailPage() {
           
           <div className="h-1.5 bg-gradient-to-r from-cyan-500 via-blue-500 via-violet-500 to-fuchsia-500 rounded-full mb-8"></div>
           
-          <div className="mb-6" data-color-mode="auto">
-            <MarkdownPreview
-              source={postContent}
-              style={{ backgroundColor: 'transparent', padding: 0 }}
-              className="!bg-transparent"
-            />
-          </div>
+          {/* Content — gated for premium posts */}
+          {post.isPremium && !post.paidByCurrentUser && !isAuthor ? (
+            <div className="mb-6">
+              <div data-color-mode="auto" className="mb-4">
+                <MarkdownPreview
+                  source={postContent}
+                  style={{ backgroundColor: 'transparent', padding: 0 }}
+                  className="!bg-transparent"
+                />
+              </div>
+              {/* Paywall banner */}
+              <div className="relative mt-4 rounded-2xl overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/70 to-white dark:via-slate-900/70 dark:to-slate-900 pointer-events-none" />
+                <div className="relative z-10 flex flex-col items-center text-center px-8 py-10 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-slate-800 dark:to-slate-700 border-2 border-amber-300 dark:border-amber-600 rounded-2xl shadow-xl">
+                  <div className="p-4 bg-gradient-to-br from-amber-400 to-orange-500 rounded-2xl shadow-lg mb-4">
+                    <svg className="w-10 h-10 text-white" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <h3 className="text-2xl font-bold text-gray-900 dark:text-slate-100 mb-2">This is a Premium Post</h3>
+                  <p className="text-gray-600 dark:text-slate-300 mb-6 max-w-md">
+                    Unlock the full article for <span className="font-bold text-amber-600 dark:text-amber-400">₹{(post.price / 100).toFixed(0)}</span>. One-time payment, read anytime.
+                  </p>
+                  {isAuthenticated ? (
+                    <button
+                      onClick={handlePay}
+                      disabled={payLoading}
+                      className="flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-2xl shadow-lg disabled:opacity-60 disabled:cursor-not-allowed text-lg"
+                    >
+                      {payLoading ? (
+                        <>
+                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white" />
+                          Processing...
+                        </>
+                      ) : (
+                        <>
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                          </svg>
+                          Unlock for ₹{(post.price / 100).toFixed(0)}
+                        </>
+                      )}
+                    </button>
+                  ) : (
+                    <div className="flex flex-col items-center gap-3">
+                      <p className="text-gray-600 dark:text-slate-400">
+                        <Link to="/login" className="text-amber-600 hover:underline font-bold">Sign in</Link> to unlock this post
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="mb-6" data-color-mode="auto">
+              <MarkdownPreview
+                source={postContent}
+                style={{ backgroundColor: 'transparent', padding: 0 }}
+                className="!bg-transparent"
+              />
+            </div>
+          )}
 
           <div className="flex items-center gap-4 py-4 border-t border-b border-gray-200 dark:border-slate-700 mb-2">
             <button

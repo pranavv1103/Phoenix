@@ -10,6 +10,8 @@ export default function EditPostPage() {
   const { user } = useAuthStore();
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
+  const [isPremium, setIsPremium] = useState(false);
+  const [price, setPrice] = useState('');
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -30,6 +32,8 @@ export default function EditPostPage() {
         
         setPost(postData);
         setTitle(postData.title);
+        setIsPremium(postData.isPremium || false);
+        setPrice(postData.price ? (postData.price / 100).toString() : '');
         // Load only the actual saved content, no template text
         setContent(postData.content || '');
       } catch {
@@ -52,7 +56,8 @@ export default function EditPostPage() {
     try {
       setSubmitting(true);
       setError('');
-      await client.put(`/api/posts/${id}`, { title, content });
+      const priceInPaise = isPremium ? Math.round(parseFloat(price || '0') * 100) : 0;
+      await client.put(`/api/posts/${id}`, { title, content, isPremium, price: priceInPaise });
       navigate(`/posts/${id}`);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to update post');
@@ -134,6 +139,42 @@ export default function EditPostPage() {
                   className="rounded-xl overflow-hidden"
                 />
               </div>
+            </div>
+
+            {/* Premium Post Toggle */}
+            <div className="p-5 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-slate-700/60 dark:to-slate-700/40 rounded-2xl border-2 border-amber-200 dark:border-amber-700/50">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <svg className="w-5 h-5 text-amber-600 dark:text-amber-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                  </svg>
+                  <label className="text-gray-800 dark:text-slate-200 font-semibold text-lg">Premium Post</label>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsPremium(!isPremium)}
+                  className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors duration-300 focus:outline-none ${isPremium ? 'bg-amber-500' : 'bg-gray-300 dark:bg-slate-600'}`}
+                  aria-label="Toggle premium"
+                >
+                  <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform duration-300 ${isPremium ? 'translate-x-8' : 'translate-x-1'}`} />
+                </button>
+              </div>
+              <p className="text-sm text-gray-600 dark:text-slate-400 mb-3">Charge readers to unlock the full content of this post.</p>
+              {isPremium && (
+                <div>
+                  <label className="block text-gray-700 dark:text-slate-300 mb-1 font-semibold">Price (₹ in INR)</label>
+                  <input
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={price}
+                    onChange={(e) => setPrice(e.target.value)}
+                    className="w-48 px-4 py-2 border-2 border-amber-300 dark:border-amber-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-xl focus:outline-none focus:border-amber-500 focus:ring-4 focus:ring-amber-100 dark:focus:ring-amber-900/40 transition-all duration-300"
+                    placeholder="e.g. 99"
+                    required={isPremium}
+                  />
+                </div>
+              )}
             </div>
 
             <div className="flex gap-4 pt-6 border-t border-gray-200 dark:border-slate-700">
