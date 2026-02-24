@@ -13,6 +13,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -26,7 +27,7 @@ public class LikeService {
 
     @Transactional
     public LikeResponse toggleLike(UUID postId, String userEmail) {
-        Post post = postRepository.findById(postId)
+        Post post = postRepository.findById(Objects.requireNonNull(postId))
                 .orElseThrow(() -> new PostNotFoundException("Post not found with id: " + postId));
         User user = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
@@ -34,7 +35,7 @@ public class LikeService {
         Optional<Like> existingLike = likeRepository.findByPostAndUser(post, user);
 
         if (existingLike.isPresent()) {
-            likeRepository.delete(existingLike.get());
+            likeRepository.delete(Objects.requireNonNull(existingLike.get()));
             long newCount = likeRepository.countByPost(post);
             return LikeResponse.builder()
                     .likeCount(newCount)
@@ -45,7 +46,7 @@ public class LikeService {
                     .post(post)
                     .user(user)
                     .build();
-            likeRepository.save(like);
+            likeRepository.save(Objects.requireNonNull(like));
             long newCount = likeRepository.countByPost(post);
             return LikeResponse.builder()
                     .likeCount(newCount)
