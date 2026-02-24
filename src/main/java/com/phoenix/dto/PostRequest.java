@@ -1,5 +1,6 @@
 package com.phoenix.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -16,6 +17,7 @@ public class PostRequest {
     @NotBlank(message = "Content is required")
     private String content;
 
+    @JsonProperty("isPremium")
     private boolean isPremium = false;
 
     private int price = 0;

@@ -1,5 +1,6 @@
 package com.phoenix.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -23,6 +24,7 @@ public class PostResponse {
     private int commentCount;
     private long likeCount;
     private boolean likedByCurrentUser;
+    @JsonProperty("isPremium")
     private boolean isPremium;
     private int price;
     private boolean paidByCurrentUser;
