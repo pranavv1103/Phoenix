@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import client from '../api/client';
 import useAuthStore from '../store/authStore';
 import { formatRelativeTime } from '../utils/dateUtils';
+import ConfirmDeleteModal from '../components/ConfirmDeleteModal';
 
 export default function PostDetailPage() {
   const { id } = useParams();
@@ -13,6 +14,9 @@ export default function PostDetailPage() {
   const [newComment, setNewComment] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
 
   const fetchPost = useCallback(async () => {
     try {
@@ -54,13 +58,16 @@ export default function PostDetailPage() {
   }, [fetchPost, fetchComments]);
 
   const handleDelete = async () => {
-    if (!window.confirm('Are you sure you want to delete this post?')) return;
-
+    setDeleteError('');
+    setIsDeleting(true);
     try {
       await client.delete(`/api/posts/${id}`);
+      setIsDeleteModalOpen(false);
       navigate('/');
     } catch {
-      alert('Failed to delete post');
+      setDeleteError('Failed to delete post');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -180,7 +187,10 @@ export default function PostDetailPage() {
                 Edit Post
               </Link>
               <button
-                onClick={handleDelete}
+                onClick={() => {
+                  setDeleteError('');
+                  setIsDeleteModalOpen(true);
+                }}
                 className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-rose-600 to-pink-600 text-white rounded-xl hover:from-rose-700 hover:to-pink-700 transition-all duration-300 transform hover:scale-105 hover:shadow-xl font-semibold"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -281,6 +291,19 @@ export default function PostDetailPage() {
           </div>
         </div>
       </div>
+
+      <ConfirmDeleteModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => {
+          if (!isDeleting) {
+            setIsDeleteModalOpen(false);
+            setDeleteError('');
+          }
+        }}
+        onConfirm={handleDelete}
+        isDeleting={isDeleting}
+        errorMessage={deleteError}
+      />
     </div>
   );
 }
