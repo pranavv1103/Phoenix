@@ -1,0 +1,30 @@
+services:
+  - type: web
+    name: phoenix-backend
+    env: java
+    plan: free
+    buildCommand: mvn clean package -DskipTests
+    startCommand: java -jar target/phoenix-1.0.0.jar
+    healthCheckPath: /api/posts?page=0&size=1
+    envVars:
+      # Set these manually in Render dashboard after deployment
+      # DATABASE_URL format: jdbc:postgresql://host:port/dbname
+      - key: DATABASE_URL
+        sync: false
+      - key: DB_USERNAME
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: MAIL_USERNAME
+        sync: false
+      - key: MAIL_PASSWORD
+        sync: false
+      - key: RAZORPAY_KEY_ID
+        sync: false
+      - key: RAZORPAY_KEY_SECRET
+        sync: false
+      # Set this to your Vercel frontend URL after deploying the frontend
+      - key: FRONTEND_URL
+        sync: false
