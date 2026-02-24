@@ -7,16 +7,28 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
 
+  // Debounce search query - wait 500ms after user stops typing
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 500);
+
+    // Clear timeout if user types again before 500ms
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery]);
+
+  // Fetch posts only when debounced query changes
   useEffect(() => {
     fetchPosts();
-  }, [searchQuery]);
+  }, [debouncedSearchQuery]);
 
   const fetchPosts = async () => {
     try {
       setLoading(true);
-      const url = searchQuery.trim() 
-        ? `/api/posts?search=${encodeURIComponent(searchQuery.trim())}`
+      const url = debouncedSearchQuery.trim() 
+        ? `/api/posts?search=${encodeURIComponent(debouncedSearchQuery.trim())}`
         : '/api/posts';
       const response = await client.get(url);
       setPosts(response.data.data);
