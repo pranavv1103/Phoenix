@@ -24,6 +24,20 @@ export default function PostDetailPage() {
     }
   }, [id]);
 
+  const handleLike = async () => {
+    if (!isAuthenticated) {
+      navigate('/login');
+      return;
+    }
+    try {
+      const response = await client.post(`/api/posts/${id}/like`);
+      const { likeCount, likedByCurrentUser } = response.data.data;
+      setPost(prev => ({ ...prev, likeCount, likedByCurrentUser }));
+    } catch (err) {
+      console.error('Failed to toggle like', err);
+    }
+  };
+
   const fetchComments = useCallback(async () => {
     try {
       const response = await client.get(`/api/posts/${id}/comments`);
@@ -129,6 +143,28 @@ export default function PostDetailPage() {
           
           <div className="prose prose-lg max-w-none mb-6 whitespace-pre-wrap text-gray-700 leading-relaxed">
             {post.content}
+          </div>
+
+          <div className="flex items-center gap-4 py-4 border-t border-b border-gray-200 mb-2">
+            <button
+              onClick={handleLike}
+              className={`flex items-center gap-2 px-6 py-3 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 hover:shadow-lg ${
+                post.likedByCurrentUser
+                  ? 'bg-gradient-to-r from-red-500 to-pink-500 text-white shadow-md'
+                  : 'bg-white border-2 border-gray-200 text-gray-600 hover:border-red-400 hover:text-red-500'
+              }`}
+            >
+              <svg className="w-6 h-6" fill={post.likedByCurrentUser ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+              </svg>
+              <span>{post.likedByCurrentUser ? 'Liked' : 'Like'}</span>
+              <span className={`px-2 py-0.5 rounded-full text-sm font-bold ${post.likedByCurrentUser ? 'bg-white/30' : 'bg-gray-100'}`}>
+                {post.likeCount || 0}
+              </span>
+            </button>
+            {!isAuthenticated && (
+              <span className="text-sm text-gray-500 italic">Sign in to like this post</span>
+            )}
           </div>
 
           {isAuthor && isAuthenticated && (

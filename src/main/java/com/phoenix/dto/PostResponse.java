@@ -21,4 +21,6 @@ public class PostResponse {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private int commentCount;
+    private long likeCount;
+    private boolean likedByCurrentUser;
 }

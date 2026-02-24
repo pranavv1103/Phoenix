@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import client from '../api/client';
+import useAuthStore from '../store/authStore';
 
 export default function HomePage() {
   const [posts, setPosts] = useState([]);
@@ -15,6 +16,26 @@ export default function HomePage() {
   const [isLast, setIsLast] = useState(true);
   const searchRef = useRef(null);
   const pageSize = 6;
+  const navigate = useNavigate();
+  const { isAuthenticated } = useAuthStore();
+
+  const handleLike = async (e, postId) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!isAuthenticated) {
+      navigate('/login');
+      return;
+    }
+    try {
+      const response = await client.post(`/api/posts/${postId}/like`);
+      const { likeCount, likedByCurrentUser } = response.data.data;
+      setPosts(prev => prev.map(p =>
+        p.id === postId ? { ...p, likeCount, likedByCurrentUser } : p
+      ));
+    } catch (err) {
+      console.error('Failed to toggle like', err);
+    }
+  };
 
   // Debounce search query - wait 500ms after user stops typing
   useEffect(() => {
@@ -203,12 +224,27 @@ export default function HomePage() {
                           <p className="text-xs text-gray-600">{new Date(post.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
                         </div>
                       </div>
-                      <div className={`flex items-center gap-1 text-gray-700 bg-gradient-to-br ${bgGradient} px-3 py-1.5 rounded-full border border-gray-200 font-semibold`}>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={(e) => handleLike(e, post.id)}
+                          className={`flex items-center gap-1 px-3 py-1.5 rounded-full border font-semibold transition-all duration-200 hover:scale-110 ${
+                            post.likedByCurrentUser
+                              ? 'bg-red-50 border-red-300 text-red-500'
+                              : 'bg-white border-gray-200 text-gray-500 hover:border-red-300 hover:text-red-400'
+                          }`}
+                        >
+                          <svg className="w-4 h-4" fill={post.likedByCurrentUser ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                          </svg>
+                          <span className="text-sm">{post.likeCount || 0}</span>
+                        </button>
+                        <div className={`flex items-center gap-1 text-gray-700 bg-gradient-to-br ${bgGradient} px-3 py-1.5 rounded-full border border-gray-200 font-semibold`}>
                         <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clipRule="evenodd" />
                         </svg>
                         <span className="text-sm">{post.commentCount}</span>
                       </div>
+                    </div>
                     </div>
                   </div>
                 </Link>

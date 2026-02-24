@@ -7,12 +7,15 @@ import com.phoenix.entity.Post;
 import com.phoenix.entity.User;
 import com.phoenix.exception.PostNotFoundException;
 import com.phoenix.exception.UnauthorizedException;
+import com.phoenix.repository.LikeRepository;
 import com.phoenix.repository.PostRepository;
 import com.phoenix.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.lang.NonNull;
@@ -29,6 +32,7 @@ public class PostService {
 
     private final PostRepository postRepository;
     private final UserRepository userRepository;
+    private final LikeRepository likeRepository;
 
     @Transactional(readOnly = true)
     public PagedResponse<PostResponse> getAllPosts(int page, int size) {
@@ -118,6 +122,17 @@ public class PostService {
     }
 
     private PostResponse convertToResponse(Post post) {
+        long likeCount = likeRepository.countByPostId(post.getId());
+        boolean likedByCurrentUser = false;
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.isAuthenticated() && !auth.getPrincipal().equals("anonymousUser")) {
+            userRepository.findByEmail(auth.getName()).ifPresent(user ->
+                likeRepository.existsByPostIdAndUserId(post.getId(), user.getId()));
+            // re-check with the actual user
+            likedByCurrentUser = userRepository.findByEmail(auth.getName())
+                    .map(user -> likeRepository.existsByPostIdAndUserId(post.getId(), user.getId()))
+                    .orElse(false);
+        }
         return PostResponse.builder()
                 .id(post.getId())
                 .title(post.getTitle())
@@ -127,6 +142,8 @@ public class PostService {
                 .createdAt(post.getCreatedAt())
                 .updatedAt(post.getUpdatedAt())
                 .commentCount(post.getComments() != null ? post.getComments().size() : 0)
+                .likeCount(likeCount)
+                .likedByCurrentUser(likedByCurrentUser)
                 .build();
     }
 }
