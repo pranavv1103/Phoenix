@@ -1,0 +1,34 @@
+# macOS
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+*.iml
+
+# Local helper runtime files
+.dev-logs/
+.dev-pids/
+
+# Backend (Maven / Java)
+target/
+*.class
+*.jar
+*.war
+*.ear
+
+# Frontend (Vite / Node)
+phoenix-client/node_modules/
+phoenix-client/dist/
+phoenix-client/dist-ssr/
+phoenix-client/*.local
+phoenix-client/npm-debug.log*
+phoenix-client/yarn-debug.log*
+phoenix-client/yarn-error.log*
+phoenix-client/pnpm-debug.log*
+phoenix-client/lerna-debug.log*
+
+# Env files
+.env
+.env.*
+!.env.example
