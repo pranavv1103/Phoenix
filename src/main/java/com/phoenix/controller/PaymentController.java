@@ -42,7 +42,7 @@ public class PaymentController {
      * Requires authentication.
      */
     @PostMapping("/verify")
-    public ResponseEntity<ApiResponse> verifyPayment(
+    public ResponseEntity<ApiResponse<Void>> verifyPayment(
             @RequestBody @Valid PaymentVerifyRequest request,
             @AuthenticationPrincipal UserDetails userDetails) {
 

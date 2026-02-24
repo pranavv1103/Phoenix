@@ -26,6 +26,7 @@ import javax.crypto.spec.SecretKeySpec;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
+import java.util.Objects;
 import java.util.UUID;
 
 @Service
@@ -48,7 +49,7 @@ public class PaymentService {
      */
     @Transactional
     public PaymentOrderResponse createOrder(PaymentOrderRequest request, String userEmail) {
-        Post post = postRepository.findById(request.getPostId())
+        Post post = postRepository.findById(Objects.requireNonNull(request.getPostId()))
                 .orElseThrow(() -> new PostNotFoundException("Post not found"));
 
         if (!post.isPremium()) {
@@ -86,7 +87,7 @@ public class PaymentService {
                     .amount(post.getPrice())
                     .status("PENDING")
                     .build();
-            paymentRepository.save(payment);
+            paymentRepository.save(Objects.requireNonNull(payment));
 
             return PaymentOrderResponse.builder()
                     .orderId(orderId)
