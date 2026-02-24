@@ -2,6 +2,7 @@ package com.phoenix.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.springframework.lang.NonNull;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -27,6 +28,7 @@ public class PasswordResetToken {
     private User user;
 
     @Column(nullable = false)
+    @NonNull
     private LocalDateTime expiresAt;
 
     @Column(nullable = false)

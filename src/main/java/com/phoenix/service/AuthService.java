@@ -22,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -108,16 +109,19 @@ public class AuthService {
     }
 
     @Transactional
-    @SuppressWarnings("null")
     public void resetPassword(ResetPasswordRequest request) {
-        PasswordResetToken resetToken = passwordResetTokenRepository.findByToken(request.getToken())
-                .orElseThrow(() -> new RuntimeException("Invalid or expired reset token"));
+        Optional<PasswordResetToken> tokenOpt = passwordResetTokenRepository.findByToken(request.getToken());
+        if (tokenOpt.isEmpty()) {
+            throw new RuntimeException("Invalid or expired reset token");
+        }
+        PasswordResetToken resetToken = tokenOpt.get();
 
         if (resetToken.isUsed()) {
             throw new RuntimeException("Reset token has already been used");
         }
 
-        if (resetToken.getExpiresAt().isBefore(LocalDateTime.now())) {
+        LocalDateTime expiresAt = Objects.requireNonNull(resetToken.getExpiresAt());
+        if (expiresAt.isBefore(LocalDateTime.now())) {
             throw new RuntimeException("Reset token has expired");
         }
 
