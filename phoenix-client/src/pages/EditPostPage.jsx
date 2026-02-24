@@ -2,6 +2,12 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import client from '../api/client';
 import useAuthStore from '../store/authStore';
+import QuillEditor from '../components/QuillEditor';
+
+const getPlainTextFromHtml = (html) => {
+  if (!html) return '';
+  return html.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').trim();
+};
 
 export default function EditPostPage() {
   const { id } = useParams();
@@ -42,7 +48,7 @@ export default function EditPostPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!title.trim() || !content.trim()) {
+    if (!title.trim() || !getPlainTextFromHtml(content)) {
       setError('Title and content are required');
       return;
     }
@@ -123,14 +129,12 @@ export default function EditPostPage() {
 
             <div>
               <label className="block text-gray-700 font-semibold mb-3">Post Content</label>
-              <textarea
+              <QuillEditor
                 value={content}
-                onChange={(e) => setContent(e.target.value)}
-                placeholder="Write your post content here..."
-                className="w-full h-96 px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-purple-500 focus:ring-4 focus:ring-purple-100 transition-all duration-300 resize-none font-mono text-gray-700"
-                required
+                onChange={setContent}
+                className="quill-editor bg-white rounded-xl overflow-hidden"
+                placeholder="Update your post content..."
               />
-              <p className="text-sm text-gray-500 mt-2">{content.length} characters</p>
             </div>
 
             <div className="flex gap-4 pt-6 border-t border-gray-200">

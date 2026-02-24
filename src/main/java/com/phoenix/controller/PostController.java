@@ -27,13 +27,14 @@ public class PostController {
     @GetMapping
     public ResponseEntity<ApiResponse<PagedResponse<PostResponse>>> getAllPosts(
             @RequestParam(required = false) String search,
+            @RequestParam(defaultValue = "newest") String sort,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "6") int size) {
         PagedResponse<PostResponse> posts;
         if (search != null && !search.trim().isEmpty()) {
-            posts = postService.searchPosts(search, page, size);
+            posts = postService.searchPosts(search, page, size, sort);
         } else {
-            posts = postService.getAllPosts(page, size);
+            posts = postService.getAllPosts(page, size, sort);
         }
         return ResponseEntity.ok(ApiResponse.success("Posts retrieved successfully", posts));
     }

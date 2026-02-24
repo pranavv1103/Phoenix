@@ -1,6 +1,12 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import client from '../api/client';
+import QuillEditor from '../components/QuillEditor';
+
+const getPlainTextFromHtml = (html) => {
+  if (!html) return '';
+  return html.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').trim();
+};
 
 export default function CreatePostPage() {
   const [title, setTitle] = useState('');
@@ -13,6 +19,12 @@ export default function CreatePostPage() {
     e.preventDefault();
     setError('');
     setLoading(true);
+
+    if (!title.trim() || !getPlainTextFromHtml(content)) {
+      setError('Title and content are required');
+      setLoading(false);
+      return;
+    }
 
     try {
       const response = await client.post('/api/posts', { title, content });
@@ -64,13 +76,11 @@ export default function CreatePostPage() {
             </div>
             <div className="transform transition-all duration-300 hover:scale-[1.01]">
               <label className="block text-gray-700 mb-2 font-semibold text-lg">Content</label>
-              <textarea
+              <QuillEditor
                 value={content}
-                onChange={(e) => setContent(e.target.value)}
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-rose-500 focus:ring-4 focus:ring-rose-100 transition-all duration-300 resize-none"
-                rows="12"
-                placeholder="Write your story here..."
-                required
+                onChange={setContent}
+                className="quill-editor bg-white rounded-xl overflow-hidden"
+                placeholder="Write your post content..."
               />
             </div>
             <div className="flex gap-4">

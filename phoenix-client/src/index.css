@@ -123,4 +123,22 @@
   background: linear-gradient(to bottom, #0891b2, #7c3aed, #db2777);
 }
 
+.quill-editor .ql-toolbar {
+  border-top-left-radius: 0.75rem;
+  border-top-right-radius: 0.75rem;
+  border-color: #e5e7eb;
+}
+
+.quill-editor .ql-container {
+  border-bottom-left-radius: 0.75rem;
+  border-bottom-right-radius: 0.75rem;
+  border-color: #e5e7eb;
+}
+
+.quill-editor .ql-editor {
+  min-height: 300px;
+  font-size: 1rem;
+  line-height: 1.75;
+}
+
 

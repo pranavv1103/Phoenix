@@ -16,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -38,24 +39,48 @@ public class PostService {
     private final CommentRepository commentRepository;
 
     @Transactional(readOnly = true)
-    public PagedResponse<PostResponse> getAllPosts(int page, int size) {
-        Pageable pageable = PageRequest.of(page, size);
-        Page<Post> postPage = postRepository.findAllByOrderByCreatedAtDesc(pageable);
+    public PagedResponse<PostResponse> getAllPosts(int page, int size, String sort) {
+        Page<Post> postPage;
+        if (isMostLiked(sort)) {
+            postPage = postRepository.findAllOrderByLikeCountDesc(PageRequest.of(page, size));
+        } else {
+            postPage = postRepository.findAll(buildPageable(page, size, sort));
+        }
         return buildPagedResponse(postPage);
     }
 
     @Transactional(readOnly = true)
-    public PagedResponse<PostResponse> searchPosts(String query, int page, int size) {
-        Pageable pageable = PageRequest.of(page, size);
+    public PagedResponse<PostResponse> searchPosts(String query, int page, int size, String sort) {
+        if (query == null || query.trim().isEmpty()) {
+            return getAllPosts(page, size, sort);
+        }
+
+        Pageable pageable = buildPageable(page, size, sort);
         Page<Post> postPage;
         
-        if (query == null || query.trim().isEmpty()) {
-            postPage = postRepository.findAllByOrderByCreatedAtDesc(pageable);
+        if (isMostLiked(sort)) {
+            postPage = postRepository.findByTitleContainingIgnoreCaseOrderByLikeCountDesc(query.trim(), PageRequest.of(page, size));
         } else {
-            postPage = postRepository.findByTitleContainingIgnoreCaseOrderByCreatedAtDesc(query.trim(), pageable);
+            postPage = postRepository.findByTitleContainingIgnoreCase(query.trim(), pageable);
         }
         
         return buildPagedResponse(postPage);
+    }
+
+    private Pageable buildPageable(int page, int size, String sort) {
+        Sort sortSpec = Sort.by("createdAt").descending();
+        if (isOldest(sort)) {
+            sortSpec = Sort.by("createdAt").ascending();
+        }
+        return PageRequest.of(page, size, sortSpec);
+    }
+
+    private boolean isMostLiked(String sort) {
+        return "mostLiked".equalsIgnoreCase(sort);
+    }
+
+    private boolean isOldest(String sort) {
+        return "oldest".equalsIgnoreCase(sort);
     }
 
     private PagedResponse<PostResponse> buildPagedResponse(Page<Post> postPage) {

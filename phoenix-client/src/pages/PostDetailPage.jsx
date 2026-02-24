@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import client from '../api/client';
 import useAuthStore from '../store/authStore';
 import { formatRelativeTime } from '../utils/dateUtils';
+import { sanitizeHtml } from '../utils/sanitize';
 import ConfirmDeleteModal from '../components/ConfirmDeleteModal';
 
 export default function PostDetailPage() {
@@ -107,6 +108,7 @@ export default function PostDetailPage() {
   }
 
   const isAuthor = user?.email === post.authorEmail;
+  const sanitizedPostContent = sanitizeHtml(post.content);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 via-purple-50 to-pink-50 py-12 px-4">
@@ -149,9 +151,10 @@ export default function PostDetailPage() {
           
           <div className="h-1.5 bg-gradient-to-r from-cyan-500 via-blue-500 via-violet-500 to-fuchsia-500 rounded-full mb-8"></div>
           
-          <div className="prose prose-lg max-w-none mb-6 whitespace-pre-wrap text-gray-700 leading-relaxed">
-            {post.content}
-          </div>
+          <div
+            className="max-w-none mb-6 text-gray-700 leading-relaxed break-words [&_h1]:text-4xl [&_h1]:font-bold [&_h1]:mb-4 [&_h2]:text-3xl [&_h2]:font-bold [&_h2]:mb-3 [&_h3]:text-2xl [&_h3]:font-bold [&_h3]:mb-3 [&_p]:mb-4 [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:mb-4 [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:mb-4 [&_blockquote]:border-l-4 [&_blockquote]:border-violet-400 [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:text-gray-600 [&_blockquote]:my-4"
+            dangerouslySetInnerHTML={{ __html: sanitizedPostContent }}
+          ></div>
 
           <div className="flex items-center gap-4 py-4 border-t border-b border-gray-200 mb-2">
             <button
