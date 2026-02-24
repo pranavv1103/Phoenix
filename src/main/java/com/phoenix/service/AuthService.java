@@ -108,6 +108,7 @@ public class AuthService {
     }
 
     @Transactional
+    @SuppressWarnings("null")
     public void resetPassword(ResetPasswordRequest request) {
         PasswordResetToken resetToken = passwordResetTokenRepository.findByToken(request.getToken())
                 .orElseThrow(() -> new RuntimeException("Invalid or expired reset token"));

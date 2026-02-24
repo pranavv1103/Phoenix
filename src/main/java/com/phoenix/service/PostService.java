@@ -67,7 +67,7 @@ public class PostService {
         return buildPagedResponse(postPage);
     }
 
-    private Pageable buildPageable(int page, int size, String sort) {
+    private @NonNull Pageable buildPageable(int page, int size, String sort) {
         Sort sortSpec = Sort.by("createdAt").descending();
         if (isOldest(sort)) {
             sortSpec = Sort.by("createdAt").ascending();
