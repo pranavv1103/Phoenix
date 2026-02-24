@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import client from '../api/client';
 
@@ -8,6 +8,7 @@ export default function HomePage() {
   const [error, setError] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
+  const searchRef = useRef(null);
 
   // Debounce search query - wait 500ms after user stops typing
   useEffect(() => {
@@ -40,28 +41,6 @@ export default function HomePage() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50">
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-16 w-16 border-b-4 border-purple-600 mb-4"></div>
-          <p className="text-xl text-gray-700 font-medium">Loading amazing content...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex justify-center items-center min-h-screen bg-gradient-to-br from-red-50 to-pink-50">
-        <div className="text-center bg-white p-8 rounded-2xl shadow-xl">
-          <div className="text-6xl mb-4">😕</div>
-          <div className="text-xl text-red-600 font-semibold">{error}</div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 via-violet-50 to-fuchsia-50">
       <div className="container mx-auto px-6 py-12">
@@ -83,6 +62,7 @@ export default function HomePage() {
               </svg>
             </div>
             <input
+              ref={searchRef}
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -102,8 +82,22 @@ export default function HomePage() {
             )}
           </div>
         </div>
-        
-        {posts.length === 0 ? (
+
+        {loading ? (
+          <div className="flex justify-center items-center py-20">
+            <div className="text-center">
+              <div className="inline-block animate-spin rounded-full h-16 w-16 border-b-4 border-purple-600 mb-4"></div>
+              <p className="text-xl text-gray-700 font-medium">Loading amazing content...</p>
+            </div>
+          </div>
+        ) : error ? (
+          <div className="flex justify-center items-center py-20">
+            <div className="text-center bg-white p-8 rounded-2xl shadow-xl">
+              <div className="text-6xl mb-4">😕</div>
+              <div className="text-xl text-red-600 font-semibold">{error}</div>
+            </div>
+          </div>
+        ) : posts.length === 0 ? (
           <div className="text-center py-20 animate-fade-in">
             <div className="inline-block p-8 bg-gradient-to-br from-blue-100 to-violet-100 rounded-3xl shadow-xl mb-6">
               <div className="text-8xl mb-4">{searchQuery ? '🔍' : '📝'}</div>
