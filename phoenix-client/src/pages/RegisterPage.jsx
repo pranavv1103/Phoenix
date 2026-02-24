@@ -34,9 +34,9 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-100 via-teal-100 via-cyan-100 to-blue-100 py-12 px-4 relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 bg-gradient-to-br from-emerald-100 via-teal-100 via-cyan-100 to-blue-100 py-12 px-4 relative overflow-hidden">
       {/* Animated background elements */}
-      <div className="absolute inset-0 overflow-hidden">
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-20 left-20 w-72 h-72 bg-emerald-300 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-blob"></div>
         <div className="absolute top-40 right-20 w-72 h-72 bg-cyan-300 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-blob animation-delay-2000"></div>
         <div className="absolute bottom-20 left-1/2 w-72 h-72 bg-blue-300 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-blob animation-delay-4000"></div>
@@ -53,7 +53,7 @@ export default function RegisterPage() {
           <p className="text-gray-700 mt-2 text-lg font-medium">Create your account and start sharing</p>
         </div>
         
-        <div className="bg-white/80 backdrop-blur-xl p-12 rounded-3xl shadow-2xl border border-white/50">
+        <div className="bg-white/80 backdrop-blur-xl p-12 rounded-3xl shadow-2xl border border-white/50 pointer-events-auto">
           {error && (
             <div className="bg-gradient-to-r from-red-50 to-rose-50 border-l-4 border-rose-500 text-rose-700 p-4 rounded-xl mb-6 animate-shake shadow-sm">
               <div className="flex items-center">
@@ -77,8 +77,9 @@ export default function RegisterPage() {
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full pl-10 pr-4 py-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 transition-all duration-300"
+                  className="w-full pl-10 pr-4 py-4 border-2 border-gray-200 rounded-xl bg-white text-gray-900 caret-gray-900 pointer-events-auto focus:outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 transition-all duration-300"
                   placeholder="John Doe"
+                  autoComplete="name"
                   required
                 />
               </div>
@@ -95,8 +96,10 @@ export default function RegisterPage() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-10 pr-4 py-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-teal-500 focus:ring-4 focus:ring-teal-100 transition-all duration-300"
+                  className="w-full pl-10 pr-4 py-4 border-2 border-gray-200 rounded-xl bg-white text-gray-900 caret-gray-900 pointer-events-auto focus:outline-none focus:border-teal-500 focus:ring-4 focus:ring-teal-100 transition-all duration-300"
                   placeholder="you@example.com"
+                  autoComplete="email"
+                  spellCheck={false}
                   required
                 />
               </div>
@@ -113,8 +116,9 @@ export default function RegisterPage() {
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-4 py-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-cyan-500 focus:ring-4 focus:ring-cyan-100 transition-all duration-300"
+                  className="w-full pl-10 pr-4 py-4 border-2 border-gray-200 rounded-xl bg-white text-gray-900 caret-gray-900 pointer-events-auto focus:outline-none focus:border-cyan-500 focus:ring-4 focus:ring-cyan-100 transition-all duration-300"
                   placeholder="••••••••"
+                  autoComplete="new-password"
                   required
                   minLength={6}
                 />
