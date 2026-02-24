@@ -1,19 +1,30 @@
 import { useState, useEffect } from 'react'
 
+const DARK_MODE_KEY = 'theme-preference'
+
 export function useDarkMode() {
   const [isDarkMode, setIsDarkMode] = useState(() => {
-    const saved = localStorage.getItem('darkMode')
-    if (saved !== null) return saved === 'true'
-    return false
+    // Check if window is available (for SSR compatibility)
+    if (typeof window === 'undefined') return false
+    
+    // Check localStorage first
+    const saved = localStorage.getItem(DARK_MODE_KEY)
+    if (saved === 'dark') return true
+    if (saved === 'light') return false
+    
+    // Fall back to system preference
+    return window.matchMedia('(prefers-color-scheme: dark)').matches
   })
 
   useEffect(() => {
+    const root = document.documentElement
     if (isDarkMode) {
-      document.documentElement.classList.add('dark')
+      root.classList.add('dark')
+      localStorage.setItem(DARK_MODE_KEY, 'dark')
     } else {
-      document.documentElement.classList.remove('dark')
+      root.classList.remove('dark')
+      localStorage.setItem(DARK_MODE_KEY, 'light')
     }
-    localStorage.setItem('darkMode', String(isDarkMode))
   }, [isDarkMode])
 
   const toggleDarkMode = () => {

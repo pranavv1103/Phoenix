@@ -217,6 +217,19 @@ export default function HomePage() {
               ];
               const bgGradient = bgGradients[index % bgGradients.length];
               
+              // Strip markdown symbols and show plain text preview
+              const stripMarkdown = (text) => {
+                // Remove markdown formatting: **bold**, *italic*, __underline__, ~~strikethrough~~, `code`, [links](url), ![images](url), # headings, etc.
+                return text
+                  .replace(/!?\[([^\]]+)\]\([^)]+\)/g, '$1') // Remove links/images, keep text
+                  .replace(/#{1,6}\s/g, '') // Remove heading symbols
+                  .replace(/[*_~`]/g, '') // Remove bold, italic, strikethrough, code markers
+                  .replace(/^[>\-+*]\s/gm, '') // Remove blockquotes and list markers
+                  .replace(/\s+/g, ' ') // Normalize whitespace
+                  .trim();
+              };
+              const previewText = stripMarkdown(post.content).substring(0, 150) + (post.content.length > 150 ? '...' : '');
+              
               return (
                 <div
                   key={post.id}
@@ -229,7 +242,7 @@ export default function HomePage() {
                     <h2 className="text-2xl font-bold mb-3 text-gray-900 transition-all duration-300 line-clamp-2 dark:text-slate-100">
                       {post.title}
                     </h2>
-                    <p className="text-gray-700 mb-8 line-clamp-3 leading-relaxed dark:text-slate-300">{post.content}</p>
+                    <p className="text-gray-700 mb-8 line-clamp-3 leading-relaxed dark:text-slate-300">{previewText}</p>
                     <div className="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-slate-700">
                       <div className="flex items-center gap-2">
                         <div className={`w-12 h-12 bg-gradient-to-br ${gradient} rounded-full flex items-center justify-center text-white font-bold shadow-md ring-2 ring-white`}>

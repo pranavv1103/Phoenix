@@ -1,12 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import client from '../api/client';
-import QuillEditor from '../components/QuillEditor';
-
-const getPlainTextFromHtml = (html) => {
-  if (!html) return '';
-  return html.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').trim();
-};
+import MDEditor from '@uiw/react-md-editor';
 
 export default function CreatePostPage() {
   const [title, setTitle] = useState('');
@@ -20,7 +15,7 @@ export default function CreatePostPage() {
     setError('');
     setLoading(true);
 
-    if (!title.trim() || !getPlainTextFromHtml(content)) {
+    if (!title.trim() || !content.trim()) {
       setError('Title and content are required');
       setLoading(false);
       return;
@@ -76,12 +71,15 @@ export default function CreatePostPage() {
             </div>
             <div className="transform transition-all duration-300 hover:scale-[1.01]">
               <label className="block text-gray-700 dark:text-slate-300 mb-2 font-semibold text-lg">Content</label>
-              <QuillEditor
-                value={content}
-                onChange={setContent}
-                className="quill-editor bg-white rounded-xl overflow-hidden"
-                placeholder="Write your post content..."
-              />
+              <div data-color-mode="auto">
+                <MDEditor
+                  value={content}
+                  onChange={setContent}
+                  height={400}
+                  preview="live"
+                  className="rounded-xl overflow-hidden"
+                />
+              </div>
             </div>
             <div className="flex gap-4">
               <button

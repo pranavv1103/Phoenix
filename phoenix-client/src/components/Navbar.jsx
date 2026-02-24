@@ -1,29 +1,10 @@
-import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import useAuthStore from '../store/authStore';
-
-const THEME_KEY = 'theme';
-
-const getInitialTheme = () => {
-  if (typeof window === 'undefined') return 'light';
-  const stored = localStorage.getItem(THEME_KEY);
-  if (stored === 'dark' || stored === 'light') return stored;
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-};
+import { useDarkMode } from '../hooks/useDarkMode';
 
 export default function Navbar() {
   const { isAuthenticated, user, logout } = useAuthStore();
-  const [theme, setTheme] = useState(getInitialTheme);
-
-  useEffect(() => {
-    const root = document.documentElement;
-    if (theme === 'dark') {
-      root.classList.add('dark');
-    } else {
-      root.classList.remove('dark');
-    }
-    localStorage.setItem(THEME_KEY, theme);
-  }, [theme]);
+  const { isDarkMode, toggleDarkMode } = useDarkMode();
 
   const handleLogout = () => {
     logout();
@@ -100,10 +81,10 @@ export default function Navbar() {
               </>
             )}
             <button
-              onClick={() => setTheme(prev => (prev === 'dark' ? 'light' : 'dark'))}
+              onClick={toggleDarkMode}
               className="px-3 py-1 rounded-full border border-gray-300 dark:border-gray-600 text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
             >
-              {theme === 'dark' ? '☀️ Light' : '🌙 Dark'}
+              {isDarkMode ? '☀️ Light' : '🌙 Dark'}
             </button>
           </div>
         </div>

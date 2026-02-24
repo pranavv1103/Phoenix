@@ -5,6 +5,7 @@ import useAuthStore from '../store/authStore';
 import { formatRelativeTime } from '../utils/dateUtils';
 import { sanitizeHtml } from '../utils/sanitize';
 import ConfirmDeleteModal from '../components/ConfirmDeleteModal';
+import MarkdownPreview from '@uiw/react-markdown-preview';
 
 export default function PostDetailPage() {
   const { id } = useParams();
@@ -108,7 +109,9 @@ export default function PostDetailPage() {
   }
 
   const isAuthor = user?.email === post.authorEmail;
-  const sanitizedPostContent = sanitizeHtml(post.content);
+  const postAuthorName = (post.authorName || 'Unknown User').trim();
+  const postAuthorInitial = postAuthorName.charAt(0).toUpperCase();
+  const postContent = typeof post.content === 'string' ? post.content : String(post.content ?? '');
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 bg-gradient-to-br from-slate-50 via-blue-50 via-purple-50 to-pink-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-950 py-12 px-4">
@@ -129,13 +132,13 @@ export default function PostDetailPage() {
             <div className="flex items-center gap-3 text-gray-600 dark:text-slate-400">
               <div className="flex items-center gap-2">
                 <div className="w-12 h-12 bg-gradient-to-br from-blue-500 via-violet-500 to-fuchsia-500 rounded-full flex items-center justify-center text-white font-bold shadow-lg ring-2 ring-white">
-                  {post.authorName.charAt(0).toUpperCase()}
+                  {postAuthorInitial}
                 </div>
                 <Link 
-                  to={`/profile/${post.authorName}`}
+                  to={`/profile/${postAuthorName}`}
                   className="font-bold text-gray-900 dark:text-slate-100 text-lg hover:text-blue-600 dark:hover:text-blue-400 hover:underline transition-colors duration-200"
                 >
-                  {post.authorName}
+                  {postAuthorName}
                 </Link>
               </div>
               <span className="text-gray-400 dark:text-slate-500">•</span>
@@ -151,10 +154,13 @@ export default function PostDetailPage() {
           
           <div className="h-1.5 bg-gradient-to-r from-cyan-500 via-blue-500 via-violet-500 to-fuchsia-500 rounded-full mb-8"></div>
           
-          <div
-            className="max-w-none mb-6 text-gray-700 dark:text-slate-300 leading-relaxed break-words [&_h1]:text-4xl [&_h1]:font-bold [&_h1]:mb-4 [&_h2]:text-3xl [&_h2]:font-bold [&_h2]:mb-3 [&_h3]:text-2xl [&_h3]:font-bold [&_h3]:mb-3 [&_p]:mb-4 [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:mb-4 [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:mb-4 [&_blockquote]:border-l-4 [&_blockquote]:border-violet-400 dark:[&_blockquote]:border-violet-600 [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:text-gray-600 dark:[&_blockquote]:text-slate-400 [&_blockquote]:my-4"
-            dangerouslySetInnerHTML={{ __html: sanitizedPostContent }}
-          ></div>
+          <div className="mb-6" data-color-mode="auto">
+            <MarkdownPreview
+              source={postContent}
+              style={{ backgroundColor: 'transparent', padding: 0 }}
+              className="!bg-transparent"
+            />
+          </div>
 
           <div className="flex items-center gap-4 py-4 border-t border-b border-gray-200 dark:border-slate-700 mb-2">
             <button
@@ -258,6 +264,8 @@ export default function PostDetailPage() {
               </div>
             ) : (
               comments.map((comment, index) => {
+                const commentAuthorName = (comment.authorName || 'Unknown User').trim();
+                const commentAuthorInitial = commentAuthorName.charAt(0).toUpperCase();
                 const gradients = [
                   'from-violet-500 to-fuchsia-500',
                   'from-blue-500 to-cyan-500',
@@ -275,13 +283,13 @@ export default function PostDetailPage() {
                   >
                     <div className="flex items-center gap-2 mb-3">
                       <div className={`w-10 h-10 bg-gradient-to-br ${gradient} rounded-full flex items-center justify-center text-white font-bold text-sm shadow-lg ring-2 ring-white`}>
-                        {comment.authorName.charAt(0).toUpperCase()}
+                        {commentAuthorInitial}
                       </div>
                       <Link 
-                        to={`/profile/${comment.authorName}`}
+                        to={`/profile/${commentAuthorName}`}
                         className="font-bold text-gray-900 dark:text-slate-100 hover:text-blue-600 dark:hover:text-blue-400 hover:underline transition-colors duration-200"
                       >
-                        {comment.authorName}
+                        {commentAuthorName}
                       </Link>
                       <span className="text-gray-400 dark:text-slate-500">•</span>
                       <span className="text-sm text-gray-600 dark:text-slate-400 font-medium">{formatRelativeTime(comment.createdAt)}</span>

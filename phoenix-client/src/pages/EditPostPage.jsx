@@ -2,12 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import client from '../api/client';
 import useAuthStore from '../store/authStore';
-import QuillEditor from '../components/QuillEditor';
-
-const getPlainTextFromHtml = (html) => {
-  if (!html) return '';
-  return html.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').trim();
-};
+import MDEditor from '@uiw/react-md-editor';
 
 export default function EditPostPage() {
   const { id } = useParams();
@@ -35,7 +30,8 @@ export default function EditPostPage() {
         
         setPost(postData);
         setTitle(postData.title);
-        setContent(postData.content);
+        // Load only the actual saved content, no template text
+        setContent(postData.content || '');
       } catch {
         setError('Failed to load post');
       } finally {
@@ -48,7 +44,7 @@ export default function EditPostPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!title.trim() || !getPlainTextFromHtml(content)) {
+    if (!title.trim() || !content.trim()) {
       setError('Title and content are required');
       return;
     }
@@ -129,12 +125,15 @@ export default function EditPostPage() {
 
             <div>
               <label className="block text-gray-700 dark:text-slate-300 font-semibold mb-3">Post Content</label>
-              <QuillEditor
-                value={content}
-                onChange={setContent}
-                className="quill-editor bg-white rounded-xl overflow-hidden"
-                placeholder="Update your post content..."
-              />
+              <div data-color-mode="auto">
+                <MDEditor
+                  value={content}
+                  onChange={setContent}
+                  height={400}
+                  preview="live"
+                  className="rounded-xl overflow-hidden"
+                />
+              </div>
             </div>
 
             <div className="flex gap-4 pt-6 border-t border-gray-200 dark:border-slate-700">
