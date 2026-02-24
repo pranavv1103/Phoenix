@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import client from '../api/client';
 import useAuthStore from '../store/authStore';
+import { formatRelativeTime } from '../utils/dateUtils';
 
 export default function HomePage() {
   const [posts, setPosts] = useState([]);
@@ -92,7 +93,7 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 via-violet-50 to-fuchsia-50">
-      <div className="container mx-auto px-6 py-12">
+      <div className="max-w-[1500px] mx-auto px-6 md:px-8 py-12">
         <div className="text-center mb-12 animate-fade-in">
           <div className="inline-block mb-6">
             <h1 className="text-6xl font-bold bg-gradient-to-r from-cyan-600 via-blue-600 via-violet-600 to-fuchsia-600 bg-clip-text text-transparent mb-4 drop-shadow-sm">
@@ -173,7 +174,7 @@ export default function HomePage() {
             )}
           </div>
         ) : (
-          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-10 md:grid-cols-2 xl:grid-cols-3">
             {posts.map((post, index) => {
               const gradients = [
                 'from-cyan-500 via-blue-500 to-violet-500',
@@ -199,18 +200,18 @@ export default function HomePage() {
                 <Link
                   key={post.id}
                   to={`/posts/${post.id}`}
-                  className="group bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden transform hover:-translate-y-2 animate-slide-up border border-gray-100 hover:border-transparent"
+                  className="group bg-white rounded-3xl shadow-xl hover:shadow-2xl transition-all duration-500 overflow-hidden transform hover:-translate-y-2 animate-slide-up border border-gray-100 hover:border-transparent"
                   style={{ animationDelay: `${index * 100}ms` }}
                 >
                   <div className={`h-2 bg-gradient-to-r ${gradient}`}></div>
-                  <div className={`bg-gradient-to-br ${bgGradient} p-6 transition-all duration-500 group-hover:opacity-90`}>
-                    <h2 className="text-2xl font-bold mb-3 text-gray-900 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:${gradient} transition-all duration-300 line-clamp-2">
+                  <div className={`bg-gradient-to-br ${bgGradient} p-8 transition-all duration-500 group-hover:opacity-90`}>
+                    <h2 className="text-2xl font-bold mb-3 text-gray-900 transition-all duration-300 line-clamp-2">
                       {post.title}
                     </h2>
-                    <p className="text-gray-700 mb-6 line-clamp-3 leading-relaxed">{post.content}</p>
+                    <p className="text-gray-700 mb-8 line-clamp-3 leading-relaxed">{post.content}</p>
                     <div className="flex items-center justify-between pt-4 border-t border-gray-200">
                       <div className="flex items-center gap-2">
-                        <div className={`w-10 h-10 bg-gradient-to-br ${gradient} rounded-full flex items-center justify-center text-white font-bold shadow-md ring-2 ring-white`}>
+                        <div className={`w-12 h-12 bg-gradient-to-br ${gradient} rounded-full flex items-center justify-center text-white font-bold shadow-md ring-2 ring-white`}>
                           {post.authorName.charAt(0).toUpperCase()}
                         </div>
                         <div>
@@ -221,10 +222,10 @@ export default function HomePage() {
                           >
                             {post.authorName}
                           </Link>
-                          <p className="text-xs text-gray-600">{new Date(post.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
+                          <p className="text-xs text-gray-600">{formatRelativeTime(post.createdAt)}</p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-3">
                         <button
                           onClick={(e) => handleLike(e, post.id)}
                           className={`flex items-center gap-1 px-3 py-1.5 rounded-full border font-semibold transition-all duration-200 hover:scale-110 ${

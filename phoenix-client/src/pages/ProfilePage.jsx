@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import client from '../api/client';
+import { formatRelativeTime } from '../utils/dateUtils';
 
 export default function ProfilePage() {
   const { username } = useParams();
@@ -78,11 +79,7 @@ export default function ProfilePage() {
                 <div className="bg-gradient-to-br from-blue-50 to-cyan-50 p-4 rounded-xl border border-blue-200">
                   <p className="text-gray-600 font-medium text-sm">Joined Date</p>
                   <p className="text-2xl font-bold text-blue-600 mt-1">
-                    {new Date(profile.joinedDate).toLocaleDateString('en-US', {
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric',
-                    })}
+                    {formatRelativeTime(profile.joinedDate)}
                   </p>
                 </div>
                 <div className="bg-gradient-to-br from-purple-50 to-pink-50 p-4 rounded-xl border border-purple-200">
@@ -127,11 +124,7 @@ export default function ProfilePage() {
                       </p>
                       <div className="flex items-center justify-between text-xs text-gray-500 pt-4 border-t border-gray-100">
                         <span>
-                          {new Date(post.createdAt).toLocaleDateString('en-US', {
-                            month: 'short',
-                            day: 'numeric',
-                            year: 'numeric',
-                          })}
+                          {formatRelativeTime(post.createdAt)}
                         </span>
                         <span className="flex items-center gap-1">
                           <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import client from '../api/client';
 import useAuthStore from '../store/authStore';
+import { formatRelativeTime } from '../utils/dateUtils';
 
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState('posts');
@@ -143,11 +144,7 @@ export default function AdminPage() {
                         <div className="text-sm text-gray-500">{post.authorEmail}</div>
                       </td>
                       <td className="px-6 py-4 text-gray-600">
-                        {new Date(post.createdAt).toLocaleDateString('en-US', {
-                          year: 'numeric',
-                          month: 'short',
-                          day: 'numeric'
-                        })}
+                        {formatRelativeTime(post.createdAt)}
                       </td>
                       <td className="px-6 py-4 text-center">
                         <button
@@ -198,11 +195,7 @@ export default function AdminPage() {
                         </span>
                       </td>
                       <td className="px-6 py-4 text-gray-600">
-                        {new Date(user.createdAt).toLocaleDateString('en-US', {
-                          year: 'numeric',
-                          month: 'short',
-                          day: 'numeric'
-                        })}
+                        {formatRelativeTime(user.createdAt)}
                       </td>
                     </tr>
                   ))

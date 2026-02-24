@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import client from '../api/client';
 import useAuthStore from '../store/authStore';
+import { formatRelativeTime } from '../utils/dateUtils';
 
 export default function PostDetailPage() {
   const { id } = useParams();
@@ -129,7 +130,7 @@ export default function PostDetailPage() {
                 </Link>
               </div>
               <span className="text-gray-400">•</span>
-              <span className="text-sm font-medium">{new Date(post.createdAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</span>
+              <span className="text-sm font-medium">{formatRelativeTime(post.createdAt)}</span>
               {post.createdAt !== post.updatedAt && (
                 <>
                   <span className="text-gray-400">•</span>
@@ -270,7 +271,7 @@ export default function PostDetailPage() {
                         {comment.authorName}
                       </Link>
                       <span className="text-gray-400">•</span>
-                      <span className="text-sm text-gray-600 font-medium">{new Date(comment.createdAt).toLocalDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                      <span className="text-sm text-gray-600 font-medium">{formatRelativeTime(comment.createdAt)}</span>
                     </div>
                     <p className="text-gray-700 ml-12 whitespace-pre-wrap leading-relaxed">{comment.content}</p>
                   </div>

@@ -37,7 +37,7 @@ export default function LoginPage() {
         <div className="absolute bottom-20 left-1/2 w-72 h-72 bg-fuchsia-300 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-blob animation-delay-4000"></div>
       </div>
       
-      <div className="max-w-md w-full animate-fade-in relative z-10">
+      <div className="max-w-xl w-full animate-fade-in relative z-10">
         <div className="text-center mb-8">
           <div className="inline-block p-4 bg-gradient-to-br from-cyan-600 via-blue-600 to-violet-600 rounded-3xl mb-4 shadow-2xl ring-4 ring-white">
             <svg className="w-14 h-14 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -48,7 +48,7 @@ export default function LoginPage() {
           <p className="text-gray-700 mt-2 text-lg font-medium">Sign in to continue your journey</p>
         </div>
         
-        <div className="bg-white/80 backdrop-blur-xl p-10 rounded-3xl shadow-2xl border border-white/50">
+        <div className="bg-white/80 backdrop-blur-xl p-12 rounded-3xl shadow-2xl border border-white/50">
           {error && (
             <div className="bg-gradient-to-r from-red-50 to-rose-50 border-l-4 border-rose-500 text-rose-700 p-4 rounded-xl mb-6 animate-shake shadow-sm">
               <div className="flex items-center">
@@ -59,7 +59,7 @@ export default function LoginPage() {
               </div>
             </div>
           )}
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-7">
             <div className="transform transition-all duration-300 hover:scale-[1.01]">
               <label className="block text-gray-700 mb-2 font-medium">Email Address</label>
               <div className="relative">
@@ -72,7 +72,7 @@ export default function LoginPage() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all duration-300"
+                  className="w-full pl-10 pr-4 py-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all duration-300"
                   placeholder="you@example.com"
                   required
                 />
@@ -90,7 +90,7 @@ export default function LoginPage() {
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-violet-500 focus:ring-4 focus:ring-violet-100 transition-all duration-300"
+                  className="w-full pl-10 pr-4 py-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-violet-500 focus:ring-4 focus:ring-violet-100 transition-all duration-300"
                   placeholder="••••••••"
                   required
                 />

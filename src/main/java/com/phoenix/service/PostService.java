@@ -5,8 +5,10 @@ import com.phoenix.dto.PostRequest;
 import com.phoenix.dto.PostResponse;
 import com.phoenix.entity.Post;
 import com.phoenix.entity.User;
+import com.phoenix.entity.UserRole;
 import com.phoenix.exception.PostNotFoundException;
 import com.phoenix.exception.UnauthorizedException;
+import com.phoenix.repository.CommentRepository;
 import com.phoenix.repository.LikeRepository;
 import com.phoenix.repository.PostRepository;
 import com.phoenix.repository.UserRepository;
@@ -33,6 +35,7 @@ public class PostService {
     private final PostRepository postRepository;
     private final UserRepository userRepository;
     private final LikeRepository likeRepository;
+    private final CommentRepository commentRepository;
 
     @Transactional(readOnly = true)
     public PagedResponse<PostResponse> getAllPosts(int page, int size) {
@@ -114,10 +117,18 @@ public class PostService {
         Post post = postRepository.findById(Objects.requireNonNull(id))
                 .orElseThrow(() -> new PostNotFoundException("Post not found with id: " + id));
 
-        if (!post.getAuthor().getEmail().equals(userEmail)) {
+        User currentUser = userRepository.findByEmail(userEmail)
+            .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+
+        boolean isAuthor = post.getAuthor().getEmail().equals(userEmail);
+        boolean isAdmin = currentUser.getRole() == UserRole.ROLE_ADMIN;
+
+        if (!isAuthor && !isAdmin) {
             throw new UnauthorizedException("You are not authorized to delete this post");
         }
 
+        likeRepository.deleteByPostId(id);
+        commentRepository.deleteByPostId(id);
         postRepository.delete(post);
     }
 

@@ -5,6 +5,7 @@ import com.phoenix.dto.UserResponse;
 import com.phoenix.entity.Post;
 import com.phoenix.entity.User;
 import com.phoenix.exception.PostNotFoundException;
+import com.phoenix.repository.LikeRepository;
 import com.phoenix.repository.PostRepository;
 import com.phoenix.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +24,7 @@ public class AdminService {
 
     private final PostRepository postRepository;
     private final UserRepository userRepository;
+    private final LikeRepository likeRepository;
 
     @Transactional(readOnly = true)
     public List<PostResponse> getAllPostsForAdmin() {
@@ -44,6 +46,7 @@ public class AdminService {
     public void deletePostAsAdmin(@NonNull UUID postId) {
         Post post = postRepository.findById(Objects.requireNonNull(postId))
                 .orElseThrow(() -> new PostNotFoundException("Post not found with id: " + postId));
+        likeRepository.deleteByPostId(postId);
         postRepository.delete(Objects.requireNonNull(post));
     }
 
