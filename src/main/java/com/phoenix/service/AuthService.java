@@ -97,11 +97,11 @@ public class AuthService {
             PasswordResetToken resetToken = PasswordResetToken.builder()
                     .token(rawToken)
                     .user(user)
-                    .expiresAt(LocalDateTime.now().plusHours(1))
+                    .expiresAt(Objects.requireNonNull(LocalDateTime.now().plusHours(1)))
                     .used(false)
                     .build();
 
-            passwordResetTokenRepository.save(resetToken);
+            passwordResetTokenRepository.save(Objects.requireNonNull(resetToken));
 
             String resetLink = frontendUrl + "/reset-password?token=" + rawToken;
             emailService.sendPasswordResetEmail(user.getEmail(), resetLink);
