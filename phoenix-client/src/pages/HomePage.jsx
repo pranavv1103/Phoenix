@@ -193,7 +193,13 @@ export default function HomePage() {
                           {post.authorName.charAt(0).toUpperCase()}
                         </div>
                         <div>
-                          <p className="text-sm font-bold text-gray-900">{post.authorName}</p>
+                          <Link 
+                            to={`/profile/${post.authorName}`} 
+                            onClick={(e) => e.stopPropagation()}
+                            className="text-sm font-bold text-gray-900 hover:text-blue-600 hover:underline transition-colors duration-200"
+                          >
+                            {post.authorName}
+                          </Link>
                           <p className="text-xs text-gray-600">{new Date(post.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
                         </div>
                       </div>

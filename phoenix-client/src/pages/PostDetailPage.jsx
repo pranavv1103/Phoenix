@@ -107,7 +107,12 @@ export default function PostDetailPage() {
                 <div className="w-12 h-12 bg-gradient-to-br from-blue-500 via-violet-500 to-fuchsia-500 rounded-full flex items-center justify-center text-white font-bold shadow-lg ring-2 ring-white">
                   {post.authorName.charAt(0).toUpperCase()}
                 </div>
-                <span className="font-bold text-gray-900 text-lg">{post.authorName}</span>
+                <Link 
+                  to={`/profile/${post.authorName}`}
+                  className="font-bold text-gray-900 text-lg hover:text-blue-600 hover:underline transition-colors duration-200"
+                >
+                  {post.authorName}
+                </Link>
               </div>
               <span className="text-gray-400">•</span>
               <span className="text-sm font-medium">{new Date(post.createdAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</span>
@@ -222,9 +227,14 @@ export default function PostDetailPage() {
                       <div className={`w-10 h-10 bg-gradient-to-br ${gradient} rounded-full flex items-center justify-center text-white font-bold text-sm shadow-lg ring-2 ring-white`}>
                         {comment.authorName.charAt(0).toUpperCase()}
                       </div>
-                      <span className="font-bold text-gray-900">{comment.authorName}</span>
+                      <Link 
+                        to={`/profile/${comment.authorName}`}
+                        className="font-bold text-gray-900 hover:text-blue-600 hover:underline transition-colors duration-200"
+                      >
+                        {comment.authorName}
+                      </Link>
                       <span className="text-gray-400">•</span>
-                      <span className="text-sm text-gray-600 font-medium">{new Date(comment.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                      <span className="text-sm text-gray-600 font-medium">{new Date(comment.createdAt).toLocalDateString('en-US', { month: 'short', day: 'numeric' })}</span>
                     </div>
                     <p className="text-gray-700 ml-12 whitespace-pre-wrap leading-relaxed">{comment.content}</p>
                   </div>
