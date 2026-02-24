@@ -105,6 +105,15 @@
   }
 }
 
+html {
+  color-scheme: light;
+}
+
+html body {
+  background-color: #f9fafb;
+  color: #111827;
+}
+
 :root.dark {
   color-scheme: dark;
 }

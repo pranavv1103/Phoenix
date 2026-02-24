@@ -99,7 +99,7 @@ export default function HomePage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 via-violet-50 to-fuchsia-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 bg-gradient-to-br from-slate-50 via-blue-50 via-violet-50 to-fuchsia-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-950">
       <div className="max-w-[1500px] mx-auto px-6 md:px-8 py-12">
         <div className="text-center mb-12 animate-fade-in">
           <div className="inline-block mb-6">
@@ -108,7 +108,7 @@ export default function HomePage() {
             </h1>
             <div className="h-1.5 bg-gradient-to-r from-cyan-500 via-blue-500 via-violet-500 to-fuchsia-500 rounded-full"></div>
           </div>
-          <p className="text-gray-700 text-xl font-medium">Explore thoughtful articles from our vibrant community</p>
+          <p className="text-gray-700 text-xl font-medium dark:text-slate-300">Explore thoughtful articles from our vibrant community</p>
         </div>
 
         <div className="max-w-4xl mx-auto mb-10">
@@ -125,12 +125,12 @@ export default function HomePage() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search posts by title..."
-                className="w-full pl-12 pr-12 py-4 text-lg border-2 border-gray-200 rounded-2xl focus:outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-200 transition-all duration-300 bg-white shadow-md hover:shadow-lg"
+                className="w-full pl-12 pr-12 py-4 text-lg border-2 border-gray-200 rounded-2xl focus:outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-200 transition-all duration-300 bg-white shadow-md hover:shadow-lg dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100 dark:placeholder-slate-400 dark:focus:ring-violet-900/40"
               />
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery('')}
-                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600 transition-colors"
+                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600 transition-colors dark:text-slate-400 dark:hover:text-slate-200"
                   aria-label="Clear search"
                 >
                   <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -143,7 +143,7 @@ export default function HomePage() {
               <select
                 value={sortOption}
                 onChange={handleSortChange}
-                className="w-full md:w-56 px-4 py-4 border-2 border-gray-200 rounded-2xl bg-white text-gray-700 font-semibold shadow-md hover:shadow-lg focus:outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-200 transition-all duration-300"
+                className="w-full md:w-56 px-4 py-4 border-2 border-gray-200 rounded-2xl bg-white text-gray-700 font-semibold shadow-md hover:shadow-lg focus:outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-200 transition-all duration-300 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100 dark:focus:ring-violet-900/40"
                 aria-label="Sort posts"
               >
                 <option value="newest">Newest first</option>
@@ -158,25 +158,25 @@ export default function HomePage() {
           <div className="flex justify-center items-center py-20">
             <div className="text-center">
               <div className="inline-block animate-spin rounded-full h-16 w-16 border-b-4 border-purple-600 mb-4"></div>
-              <p className="text-xl text-gray-700 font-medium">Loading amazing content...</p>
+              <p className="text-xl text-gray-700 font-medium dark:text-slate-300">Loading amazing content...</p>
             </div>
           </div>
         ) : error ? (
           <div className="flex justify-center items-center py-20">
-            <div className="text-center bg-white p-8 rounded-2xl shadow-xl">
+            <div className="text-center bg-white p-8 rounded-2xl shadow-xl dark:bg-slate-900 dark:shadow-black/40">
               <div className="text-6xl mb-4">😕</div>
-              <div className="text-xl text-red-600 font-semibold">{error}</div>
+              <div className="text-xl text-red-600 font-semibold dark:text-red-400">{error}</div>
             </div>
           </div>
         ) : posts.length === 0 ? (
           <div className="text-center py-20 animate-fade-in">
-            <div className="inline-block p-8 bg-gradient-to-br from-blue-100 to-violet-100 rounded-3xl shadow-xl mb-6">
+            <div className="inline-block p-8 bg-gradient-to-br from-blue-100 to-violet-100 rounded-3xl shadow-xl mb-6 dark:from-slate-800 dark:to-slate-900">
               <div className="text-8xl mb-4">{searchQuery ? '🔍' : '📝'}</div>
             </div>
-            <p className="text-3xl font-bold text-gray-800 mb-3">
+            <p className="text-3xl font-bold text-gray-800 mb-3 dark:text-slate-100">
               {searchQuery ? 'No posts found' : 'No posts yet'}
             </p>
-            <p className="text-gray-600 text-lg mb-6">
+            <p className="text-gray-600 text-lg mb-6 dark:text-slate-400">
               {searchQuery 
                 ? `No results for "${searchQuery}". Try a different search term.`
                 : 'Be the first to share your story!'
@@ -218,19 +218,19 @@ export default function HomePage() {
               const bgGradient = bgGradients[index % bgGradients.length];
               
               return (
-                <Link
+                <div
                   key={post.id}
-                  to={`/posts/${post.id}`}
-                  className="group bg-white rounded-3xl shadow-xl hover:shadow-2xl transition-all duration-500 overflow-hidden transform hover:-translate-y-2 animate-slide-up border border-gray-100 hover:border-transparent"
+                  onClick={() => navigate(`/posts/${post.id}`)}
+                  className="group cursor-pointer bg-white rounded-3xl shadow-xl hover:shadow-2xl transition-all duration-500 overflow-hidden transform hover:-translate-y-2 animate-slide-up border border-gray-100 hover:border-transparent dark:bg-slate-900/80 dark:border-slate-800 dark:shadow-black/40"
                   style={{ animationDelay: `${index * 100}ms` }}
                 >
                   <div className={`h-2 bg-gradient-to-r ${gradient}`}></div>
-                  <div className={`bg-gradient-to-br ${bgGradient} p-8 transition-all duration-500 group-hover:opacity-90`}>
-                    <h2 className="text-2xl font-bold mb-3 text-gray-900 transition-all duration-300 line-clamp-2">
+                  <div className={`bg-gradient-to-br ${bgGradient} p-8 transition-all duration-500 group-hover:opacity-90 dark:from-slate-900 dark:to-slate-950`}>
+                    <h2 className="text-2xl font-bold mb-3 text-gray-900 transition-all duration-300 line-clamp-2 dark:text-slate-100">
                       {post.title}
                     </h2>
-                    <p className="text-gray-700 mb-8 line-clamp-3 leading-relaxed">{post.content}</p>
-                    <div className="flex items-center justify-between pt-4 border-t border-gray-200">
+                    <p className="text-gray-700 mb-8 line-clamp-3 leading-relaxed dark:text-slate-300">{post.content}</p>
+                    <div className="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-slate-700">
                       <div className="flex items-center gap-2">
                         <div className={`w-12 h-12 bg-gradient-to-br ${gradient} rounded-full flex items-center justify-center text-white font-bold shadow-md ring-2 ring-white`}>
                           {post.authorName.charAt(0).toUpperCase()}
@@ -239,11 +239,11 @@ export default function HomePage() {
                           <Link 
                             to={`/profile/${post.authorName}`} 
                             onClick={(e) => e.stopPropagation()}
-                            className="text-sm font-bold text-gray-900 hover:text-blue-600 hover:underline transition-colors duration-200"
+                            className="text-sm font-bold text-gray-900 hover:text-blue-600 hover:underline transition-colors duration-200 dark:text-slate-100 dark:hover:text-cyan-300"
                           >
                             {post.authorName}
                           </Link>
-                          <p className="text-xs text-gray-600">{formatRelativeTime(post.createdAt)}</p>
+                          <p className="text-xs text-gray-600 dark:text-slate-400">{formatRelativeTime(post.createdAt)}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
@@ -269,7 +269,7 @@ export default function HomePage() {
                     </div>
                     </div>
                   </div>
-                </Link>
+                </div>
               );
             })}
           </div>

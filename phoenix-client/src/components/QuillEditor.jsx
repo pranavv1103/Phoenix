@@ -25,10 +25,11 @@ const editorFormats = [
 export default function QuillEditor({ value, onChange, placeholder, className }) {
   const containerRef = useRef(null);
   const quillRef = useRef(null);
-  const valueRef = useRef('');
+  const isInitializedRef = useRef(false);
 
+  // Initialize Quill only once
   useEffect(() => {
-    if (!containerRef.current || quillRef.current) return;
+    if (isInitializedRef.current || !containerRef.current) return;
 
     const quill = new Quill(containerRef.current, {
       theme: 'snow',
@@ -38,38 +39,39 @@ export default function QuillEditor({ value, onChange, placeholder, className })
     });
 
     quill.on('text-change', () => {
-      const html = quill.root.innerHTML;
-      valueRef.current = html;
       if (onChange) {
-        onChange(html);
+        onChange(quill.root.innerHTML);
       }
     });
 
-    quillRef.current = quill;
-
     if (value) {
       quill.clipboard.dangerouslyPasteHTML(value);
-      valueRef.current = value;
     }
+
+    quillRef.current = quill;
+    isInitializedRef.current = true;
 
     return () => {
-      quill.off('text-change');
-      quillRef.current = null;
+      if (quillRef.current) {
+        quillRef.current.off('text-change');
+      }
     };
-  }, [onChange, placeholder, value]);
+  }, []);
 
+  // Handle external value changes
   useEffect(() => {
-    if (!quillRef.current) return;
+    if (!quillRef.current || !isInitializedRef.current) return;
+    
+    const currentContent = quillRef.current.root.innerHTML;
     const nextValue = value || '';
-    if (nextValue === valueRef.current) return;
-
-    const quill = quillRef.current;
-    const selection = quill.getSelection();
-    quill.clipboard.dangerouslyPasteHTML(nextValue);
-    if (selection) {
-      quill.setSelection(selection);
+    
+    if (currentContent !== nextValue) {
+      const selection = quillRef.current.getSelection();
+      quillRef.current.clipboard.dangerouslyPasteHTML(nextValue);
+      if (selection) {
+        quillRef.current.setSelection(selection);
+      }
     }
-    valueRef.current = nextValue;
   }, [value]);
 
   return (
@@ -78,3 +80,4 @@ export default function QuillEditor({ value, onChange, placeholder, className })
     </div>
   );
 }
+
