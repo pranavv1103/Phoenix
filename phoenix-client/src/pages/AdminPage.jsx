@@ -61,24 +61,24 @@ export default function AdminPage() {
   // Check if user is admin
   if (!user || user.role !== 'ADMIN') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-red-50 to-pink-50 flex items-center justify-center">
-        <div className="text-center bg-white p-12 rounded-3xl shadow-2xl">
-          <div className="text-8xl mb-6">🚫</div>
-          <h1 className="text-4xl font-bold text-red-600 mb-4">Access Denied</h1>
-          <p className="text-gray-600 text-lg">You do not have permission to access this page.</p>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 bg-gradient-to-br from-red-50 to-pink-50 dark:from-slate-900 dark:to-slate-950 flex items-center justify-center">
+      <div className="text-center bg-white dark:bg-slate-800 p-12 rounded-3xl shadow-2xl">
+        <div className="text-8xl mb-6">🚫</div>
+        <h1 className="text-4xl font-bold text-red-600 dark:text-red-400 mb-4">Access Denied</h1>
+        <p className="text-gray-600 dark:text-slate-300 text-lg">You do not have permission to access this page.</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-pink-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 bg-gradient-to-br from-slate-50 via-purple-50 to-pink-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-950">
       <div className="container mx-auto px-6 py-12">
         <div className="mb-8">
           <h1 className="text-5xl font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-red-600 bg-clip-text text-transparent mb-3">
             Admin Dashboard
           </h1>
-          <p className="text-gray-600 text-lg">Manage posts and users</p>
+          <p className="text-gray-600 dark:text-slate-300 text-lg">Manage posts and users</p>
         </div>
 
         {/* Tabs */}
@@ -88,7 +88,7 @@ export default function AdminPage() {
             className={`px-8 py-3 rounded-xl font-semibold transition-all duration-300 ${
               activeTab === 'posts'
                 ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg'
-                : 'bg-white text-gray-600 hover:bg-gray-50'
+                : 'bg-white dark:bg-slate-800 text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700'
             }`}
           >
             Posts
@@ -98,7 +98,7 @@ export default function AdminPage() {
             className={`px-8 py-3 rounded-xl font-semibold transition-all duration-300 ${
               activeTab === 'users'
                 ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg'
-                : 'bg-white text-gray-600 hover:bg-gray-50'
+                : 'bg-white dark:bg-slate-800 text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700'
             }`}
           >
             Users

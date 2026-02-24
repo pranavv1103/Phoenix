@@ -1,15 +1,36 @@
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import useAuthStore from '../store/authStore';
 
+const THEME_KEY = 'theme';
+
+const getInitialTheme = () => {
+  if (typeof window === 'undefined') return 'light';
+  const stored = localStorage.getItem(THEME_KEY);
+  if (stored === 'dark' || stored === 'light') return stored;
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+};
+
 export default function Navbar() {
   const { isAuthenticated, user, logout } = useAuthStore();
+  const [theme, setTheme] = useState(getInitialTheme);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    if (theme === 'dark') {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
+    localStorage.setItem(THEME_KEY, theme);
+  }, [theme]);
 
   const handleLogout = () => {
     logout();
   };
 
   return (
-    <nav className="bg-gradient-to-r from-cyan-600 via-blue-600 via-violet-600 to-fuchsia-600 text-white shadow-2xl sticky top-0 z-50 backdrop-blur-sm bg-opacity-95">
+    <nav className="dark-mode-nav bg-gradient-to-r from-cyan-600 via-blue-600 via-violet-600 to-fuchsia-600 text-white shadow-2xl sticky top-0 z-50 backdrop-blur-sm bg-opacity-95">
       <div className="container mx-auto px-6 py-4">
         <div className="flex justify-between items-center">
           <Link 
@@ -78,6 +99,12 @@ export default function Navbar() {
                 </Link>
               </>
             )}
+            <button
+              onClick={() => setTheme(prev => (prev === 'dark' ? 'light' : 'dark'))}
+              className="px-3 py-1 rounded-full border border-gray-300 dark:border-gray-600 text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            >
+              {theme === 'dark' ? '☀️ Light' : '🌙 Dark'}
+            </button>
           </div>
         </div>
       </div>

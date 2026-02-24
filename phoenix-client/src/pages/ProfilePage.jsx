@@ -28,10 +28,10 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50">
+      <div className="flex justify-center items-center min-h-screen bg-gray-50 dark:bg-gray-900 bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-950">
         <div className="text-center">
           <div className="inline-block animate-spin rounded-full h-16 w-16 border-b-4 border-purple-600 mb-4"></div>
-          <p className="text-xl text-gray-700 font-medium">Loading profile...</p>
+          <p className="text-xl text-gray-700 dark:text-slate-300 font-medium">Loading profile...</p>
         </div>
       </div>
     );
@@ -39,13 +39,13 @@ export default function ProfilePage() {
 
   if (error || !profile) {
     return (
-      <div className="flex justify-center items-center min-h-screen bg-gradient-to-br from-red-50 to-pink-50">
-        <div className="text-center bg-white p-8 rounded-2xl shadow-xl">
+      <div className="flex justify-center items-center min-h-screen bg-gray-50 dark:bg-gray-900 bg-gradient-to-br from-red-50 to-pink-50 dark:from-slate-900 dark:to-slate-950">
+        <div className="text-center bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-xl">
           <div className="text-6xl mb-4">😕</div>
-          <div className="text-xl text-red-600 font-semibold mb-4">{error}</div>
+          <div className="text-xl text-red-600 dark:text-red-400 font-semibold mb-4">{error}</div>
           <button
             onClick={() => navigate('/')}
-            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="px-6 py-3 bg-blue-600 dark:bg-blue-700 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors"
           >
             Back to Home
           </button>
@@ -55,11 +55,11 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 via-purple-50 to-pink-50 py-12 px-4">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 bg-gradient-to-br from-slate-50 via-blue-50 via-purple-50 to-pink-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-950 py-12 px-4">
       <div className="max-w-6xl mx-auto">
         <button
           onClick={() => navigate('/')}
-          className="mb-6 flex items-center gap-2 text-blue-600 hover:text-blue-700 font-semibold transition-all duration-300 hover:gap-3 bg-white px-4 py-2 rounded-xl shadow-md hover:shadow-lg"
+          className="mb-6 flex items-center gap-2 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-semibold transition-all duration-300 hover:gap-3 bg-white dark:bg-slate-800 px-4 py-2 rounded-xl shadow-md hover:shadow-lg"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -68,23 +68,23 @@ export default function ProfilePage() {
         </button>
 
         {/* Profile Header */}
-        <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl p-12 mb-8 animate-fade-in border border-white/50">
+        <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl rounded-3xl shadow-2xl p-12 mb-8 animate-fade-in border border-white/50 dark:border-slate-700/50">
           <div className="flex items-start gap-8">
-            <div className="w-32 h-32 bg-gradient-to-br from-blue-500 via-violet-500 to-fuchsia-500 rounded-full flex items-center justify-center text-6xl font-bold text-white shadow-lg ring-4 ring-white">
+            <div className="w-32 h-32 bg-gradient-to-br from-blue-500 via-violet-500 to-fuchsia-500 rounded-full flex items-center justify-center text-6xl font-bold text-white shadow-lg ring-4 ring-white dark:ring-slate-700">
               {profile.username.charAt(0).toUpperCase()}
             </div>
             <div className="flex-1">
-              <h1 className="text-5xl font-bold text-gray-900 mb-4">{profile.username}</h1>
+              <h1 className="text-5xl font-bold text-gray-900 dark:text-slate-100 mb-4">{profile.username}</h1>
               <div className="grid grid-cols-2 gap-6">
-                <div className="bg-gradient-to-br from-blue-50 to-cyan-50 p-4 rounded-xl border border-blue-200">
-                  <p className="text-gray-600 font-medium text-sm">Joined Date</p>
-                  <p className="text-2xl font-bold text-blue-600 mt-1">
+                <div className="bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-slate-700 dark:to-slate-600 p-4 rounded-xl border border-blue-200 dark:border-slate-600">
+                  <p className="text-gray-600 dark:text-slate-300 font-medium text-sm">Joined Date</p>
+                  <p className="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">
                     {formatRelativeTime(profile.joinedDate)}
                   </p>
                 </div>
-                <div className="bg-gradient-to-br from-purple-50 to-pink-50 p-4 rounded-xl border border-purple-200">
-                  <p className="text-gray-600 font-medium text-sm">Total Posts</p>
-                  <p className="text-2xl font-bold text-purple-600 mt-1">{profile.totalPosts}</p>
+                <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-slate-700 dark:to-slate-600 p-4 rounded-xl border border-purple-200 dark:border-slate-600">
+                  <p className="text-gray-600 dark:text-slate-300 font-medium text-sm">Total Posts</p>
+                  <p className="text-2xl font-bold text-purple-600 dark:text-purple-400 mt-1">{profile.totalPosts}</p>
                 </div>
               </div>
             </div>
@@ -93,14 +93,14 @@ export default function ProfilePage() {
 
         {/* Posts Section */}
         <div>
-          <h2 className="text-3xl font-bold text-gray-900 mb-6">
+          <h2 className="text-3xl font-bold text-gray-900 dark:text-slate-100 mb-6">
             {profile.totalPosts === 0 ? "No posts yet" : `Posts (${profile.totalPosts})`}
           </h2>
 
           {profile.totalPosts === 0 ? (
-            <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl p-12 text-center border border-white/50">
+            <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl rounded-3xl shadow-2xl p-12 text-center border border-white/50 dark:border-slate-700/50">
               <div className="text-6xl mb-4">📝</div>
-              <p className="text-xl text-gray-600 font-medium">
+              <p className="text-xl text-gray-600 dark:text-slate-300 font-medium">
                 {profile.username} hasn't written any posts yet
               </p>
             </div>
@@ -113,16 +113,16 @@ export default function ProfilePage() {
                   className="group animate-fade-in"
                   style={{ animationDelay: `${index * 100}ms` }}
                 >
-                  <div className="bg-white/80 backdrop-blur-xl rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105 border border-white/50 overflow-hidden h-full flex flex-col hover:bg-white">
+                  <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105 border border-white/50 dark:border-slate-700/50 overflow-hidden h-full flex flex-col hover:bg-white dark:hover:bg-slate-700">
                     <div className="h-1.5 bg-gradient-to-r from-cyan-500 via-blue-500 to-violet-500 group-hover:via-purple-500"></div>
                     <div className="p-6 flex flex-col flex-grow">
-                      <h3 className="text-xl font-bold text-gray-900 mb-2 line-clamp-2 group-hover:text-blue-600 transition-colors">
+                      <h3 className="text-xl font-bold text-gray-900 dark:text-slate-100 mb-2 line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                         {post.title}
                       </h3>
-                      <p className="text-gray-600 text-sm mb-4 flex-grow line-clamp-3">
+                      <p className="text-gray-600 dark:text-slate-300 text-sm mb-4 flex-grow line-clamp-3">
                         {post.content}
                       </p>
-                      <div className="flex items-center justify-between text-xs text-gray-500 pt-4 border-t border-gray-100">
+                      <div className="flex items-center justify-between text-xs text-gray-500 dark:text-slate-400 pt-4 border-t border-gray-100 dark:border-slate-700">
                         <span>
                           {formatRelativeTime(post.createdAt)}
                         </span>

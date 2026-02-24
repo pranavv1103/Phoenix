@@ -37,7 +37,7 @@ export default function CreatePostPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-rose-50 via-orange-50 via-amber-50 to-yellow-50 py-12 px-4">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 bg-gradient-to-br from-rose-50 via-orange-50 via-amber-50 to-yellow-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-950 py-12 px-4">
       <div className="max-w-4xl mx-auto animate-fade-in">
         <div className="text-center mb-8">
           <div className="inline-block p-4 bg-gradient-to-br from-orange-600 via-rose-600 to-pink-600 rounded-3xl mb-4 shadow-xl">
@@ -48,12 +48,12 @@ export default function CreatePostPage() {
           <h1 className="text-5xl font-bold bg-gradient-to-r from-orange-600 via-rose-600 to-pink-600 bg-clip-text text-transparent mb-2">
             Create New Post
           </h1>
-          <p className="text-gray-700 text-lg font-medium">Share your thoughts with the community</p>
+          <p className="text-gray-700 dark:text-slate-300 text-lg font-medium">Share your thoughts with the community</p>
         </div>
 
-        <div className="bg-white/80 backdrop-blur-xl p-10 rounded-3xl shadow-2xl border border-white/50">
+        <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl p-10 rounded-3xl shadow-2xl border border-white/50 dark:border-slate-700/50">
           {error && (
-            <div className="bg-gradient-to-r from-red-50 to-rose-50 border-l-4 border-rose-500 text-rose-700 p-4 rounded-xl mb-6 animate-shake shadow-sm">
+            <div className="bg-gradient-to-r from-red-50 to-rose-50 dark:from-red-900/20 dark:to-rose-900/20 border-l-4 border-rose-500 dark:border-rose-600 text-rose-700 dark:text-rose-400 p-4 rounded-xl mb-6 animate-shake shadow-sm">
               <div className="flex items-center">
                 <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
@@ -64,18 +64,18 @@ export default function CreatePostPage() {
           )}
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="transform transition-all duration-300 hover:scale-[1.01]">
-              <label className="block text-gray-700 mb-2 font-semibold text-lg">Title</label>
+              <label className="block text-gray-700 dark:text-slate-300 mb-2 font-semibold text-lg">Title</label>
               <input
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-orange-500 focus:ring-4 focus:ring-orange-100 transition-all duration-300 text-lg"
+                className="w-full px-4 py-3 border-2 border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder-gray-500 dark:placeholder-slate-400 rounded-xl focus:outline-none focus:border-orange-500 focus:ring-4 focus:ring-orange-100 dark:focus:ring-orange-900/40 transition-all duration-300 text-lg"
                 placeholder="Enter an engaging title..."
                 required
               />
             </div>
             <div className="transform transition-all duration-300 hover:scale-[1.01]">
-              <label className="block text-gray-700 mb-2 font-semibold text-lg">Content</label>
+              <label className="block text-gray-700 dark:text-slate-300 mb-2 font-semibold text-lg">Content</label>
               <QuillEditor
                 value={content}
                 onChange={setContent}
@@ -106,7 +106,7 @@ export default function CreatePostPage() {
               <button
                 type="button"
                 onClick={() => navigate('/')}
-                className="px-8 py-3 border-2 border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-all duration-300 font-semibold"
+                className="px-8 py-3 border-2 border-gray-300 dark:border-slate-700 text-gray-700 dark:text-slate-300 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-700 transition-all duration-300 font-semibold"
               >
                 Cancel
               </button>

@@ -13,7 +13,7 @@ import ProfilePage from './pages/ProfilePage';
 function App() {
   return (
     <BrowserRouter>
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gray-50 text-gray-900 dark:bg-slate-950 dark:text-slate-100">
         <Navbar />
         <Routes>
           <Route
