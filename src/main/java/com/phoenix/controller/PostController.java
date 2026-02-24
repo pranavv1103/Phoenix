@@ -25,8 +25,14 @@ public class PostController {
     private final PostService postService;
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<PostResponse>>> getAllPosts() {
-        List<PostResponse> posts = postService.getAllPosts();
+    public ResponseEntity<ApiResponse<List<PostResponse>>> getAllPosts(
+            @RequestParam(required = false) String search) {
+        List<PostResponse> posts;
+        if (search != null && !search.trim().isEmpty()) {
+            posts = postService.searchPosts(search);
+        } else {
+            posts = postService.getAllPosts();
+        }
         return ResponseEntity.ok(ApiResponse.success("Posts retrieved successfully", posts));
     }
 

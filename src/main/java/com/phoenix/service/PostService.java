@@ -34,6 +34,16 @@ public class PostService {
     }
 
     @Transactional(readOnly = true)
+    public List<PostResponse> searchPosts(String query) {
+        if (query == null || query.trim().isEmpty()) {
+            return getAllPosts();
+        }
+        return postRepository.findByTitleContainingIgnoreCaseOrderByCreatedAtDesc(query.trim()).stream()
+                .map(this::convertToResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
     public PostResponse getPostById(@NonNull UUID id) {
         Post post = postRepository.findById(Objects.requireNonNull(id))
                 .orElseThrow(() -> new PostNotFoundException("Post not found with id: " + id));

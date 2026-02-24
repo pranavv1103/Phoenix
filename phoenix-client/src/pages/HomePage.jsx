@@ -6,15 +6,21 @@ export default function HomePage() {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     fetchPosts();
-  }, []);
+  }, [searchQuery]);
 
   const fetchPosts = async () => {
     try {
-      const response = await client.get('/api/posts');
+      setLoading(true);
+      const url = searchQuery.trim() 
+        ? `/api/posts?search=${encodeURIComponent(searchQuery.trim())}`
+        : '/api/posts';
+      const response = await client.get(url);
       setPosts(response.data.data);
+      setError('');
     } catch {
       setError('Failed to load posts');
     } finally {
@@ -56,23 +62,60 @@ export default function HomePage() {
           </div>
           <p className="text-gray-700 text-xl font-medium">Explore thoughtful articles from our vibrant community</p>
         </div>
+
+        <div className="max-w-2xl mx-auto mb-10">
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+              <svg className="h-6 w-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search posts by title..."
+              className="w-full pl-12 pr-12 py-4 text-lg border-2 border-gray-200 rounded-2xl focus:outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-200 transition-all duration-300 bg-white shadow-md hover:shadow-lg"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600 transition-colors"
+                aria-label="Clear search"
+              >
+                <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            )}
+          </div>
+        </div>
         
         {posts.length === 0 ? (
           <div className="text-center py-20 animate-fade-in">
             <div className="inline-block p-8 bg-gradient-to-br from-blue-100 to-violet-100 rounded-3xl shadow-xl mb-6">
-              <div className="text-8xl mb-4">📝</div>
+              <div className="text-8xl mb-4">{searchQuery ? '🔍' : '📝'}</div>
             </div>
-            <p className="text-3xl font-bold text-gray-800 mb-3">No posts yet</p>
-            <p className="text-gray-600 text-lg mb-6">Be the first to share your story!</p>
-            <Link 
-              to="/create" 
-              className="inline-flex items-center gap-2 px-10 py-4 bg-gradient-to-r from-cyan-600 via-blue-600 to-violet-600 text-white rounded-2xl hover:scale-105 transform transition-all duration-300 shadow-xl hover:shadow-2xl font-bold text-lg"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              Create First Post
-            </Link>
+            <p className="text-3xl font-bold text-gray-800 mb-3">
+              {searchQuery ? 'No posts found' : 'No posts yet'}
+            </p>
+            <p className="text-gray-600 text-lg mb-6">
+              {searchQuery 
+                ? `No results for "${searchQuery}". Try a different search term.`
+                : 'Be the first to share your story!'
+              }
+            </p>
+            {!searchQuery && (
+              <Link 
+                to="/create" 
+                className="inline-flex items-center gap-2 px-10 py-4 bg-gradient-to-r from-cyan-600 via-blue-600 to-violet-600 text-white rounded-2xl hover:scale-105 transform transition-all duration-300 shadow-xl hover:shadow-2xl font-bold text-lg"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                Create First Post
+              </Link>
+            )}
           </div>
         ) : (
           <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
