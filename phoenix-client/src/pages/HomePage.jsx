@@ -8,36 +8,64 @@ export default function HomePage() {
   const [error, setError] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalElements, setTotalElements] = useState(0);
+  const [isFirst, setIsFirst] = useState(true);
+  const [isLast, setIsLast] = useState(true);
   const searchRef = useRef(null);
+  const pageSize = 6;
 
   // Debounce search query - wait 500ms after user stops typing
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       setDebouncedSearchQuery(searchQuery);
+      setCurrentPage(0); // Reset to first page when search changes
     }, 500);
 
     // Clear timeout if user types again before 500ms
     return () => clearTimeout(timeoutId);
   }, [searchQuery]);
 
-  // Fetch posts only when debounced query changes
+  // Fetch posts only when debounced query or page changes
   useEffect(() => {
     fetchPosts();
-  }, [debouncedSearchQuery]);
+  }, [debouncedSearchQuery, currentPage]);
 
   const fetchPosts = async () => {
     try {
       setLoading(true);
-      const url = debouncedSearchQuery.trim() 
-        ? `/api/posts?search=${encodeURIComponent(debouncedSearchQuery.trim())}`
-        : '/api/posts';
+      let url = `/api/posts?page=${currentPage}&size=${pageSize}`;
+      if (debouncedSearchQuery.trim()) {
+        url += `&search=${encodeURIComponent(debouncedSearchQuery.trim())}`;
+      }
       const response = await client.get(url);
-      setPosts(response.data.data);
+      const pageData = response.data.data;
+      
+      setPosts(pageData.content);
+      setTotalPages(pageData.totalPages);
+      setTotalElements(pageData.totalElements);
+      setIsFirst(pageData.first);
+      setIsLast(pageData.last);
       setError('');
     } catch {
       setError('Failed to load posts');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleNextPage = () => {
+    if (!isLast) {
+      setCurrentPage(prev => prev + 1);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const handlePreviousPage = () => {
+    if (!isFirst) {
+      setCurrentPage(prev => prev - 1);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
@@ -180,6 +208,52 @@ export default function HomePage() {
                 </Link>
               );
             })}
+          </div>
+        )}
+
+        {/* Pagination Controls */}
+        {!loading && !error && posts.length > 0 && totalPages > 1 && (
+          <div className="mt-12 flex items-center justify-center gap-6">
+            <button
+              onClick={handlePreviousPage}
+              disabled={isFirst}
+              className={`flex items-center gap-2 px-6 py-3 rounded-xl font-semibold transition-all duration-300 ${
+                isFirst
+                  ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                  : 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white hover:scale-105 hover:shadow-lg'
+              }`}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              Previous
+            </button>
+
+            <div className="flex items-center gap-3 px-6 py-3 bg-white rounded-xl shadow-md border border-gray-200">
+              <span className="text-gray-700 font-medium">
+                Page <span className="font-bold text-violet-600">{currentPage + 1}</span> of{' '}
+                <span className="font-bold text-violet-600">{totalPages}</span>
+              </span>
+              <span className="text-gray-400">•</span>
+              <span className="text-gray-600 text-sm">
+                {totalElements} {totalElements === 1 ? 'post' : 'posts'}
+              </span>
+            </div>
+
+            <button
+              onClick={handleNextPage}
+              disabled={isLast}
+              className={`flex items-center gap-2 px-6 py-3 rounded-xl font-semibold transition-all duration-300 ${
+                isLast
+                  ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                  : 'bg-gradient-to-r from-blue-600 to-violet-600 text-white hover:scale-105 hover:shadow-lg'
+              }`}
+            >
+              Next
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
           </div>
         )}
       </div>

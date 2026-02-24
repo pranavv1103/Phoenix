@@ -1,6 +1,7 @@
 package com.phoenix.controller;
 
 import com.phoenix.dto.ApiResponse;
+import com.phoenix.dto.PagedResponse;
 import com.phoenix.dto.PostRequest;
 import com.phoenix.dto.PostResponse;
 import com.phoenix.service.PostService;
@@ -13,7 +14,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -25,13 +25,15 @@ public class PostController {
     private final PostService postService;
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<PostResponse>>> getAllPosts(
-            @RequestParam(required = false) String search) {
-        List<PostResponse> posts;
+    public ResponseEntity<ApiResponse<PagedResponse<PostResponse>>> getAllPosts(
+            @RequestParam(required = false) String search,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "6") int size) {
+        PagedResponse<PostResponse> posts;
         if (search != null && !search.trim().isEmpty()) {
-            posts = postService.searchPosts(search);
+            posts = postService.searchPosts(search, page, size);
         } else {
-            posts = postService.getAllPosts();
+            posts = postService.getAllPosts(page, size);
         }
         return ResponseEntity.ok(ApiResponse.success("Posts retrieved successfully", posts));
     }

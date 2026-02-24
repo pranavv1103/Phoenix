@@ -1,5 +1,6 @@
 package com.phoenix.service;
 
+import com.phoenix.dto.PagedResponse;
 import com.phoenix.dto.PostRequest;
 import com.phoenix.dto.PostResponse;
 import com.phoenix.entity.Post;
@@ -9,6 +10,9 @@ import com.phoenix.exception.UnauthorizedException;
 import com.phoenix.repository.PostRepository;
 import com.phoenix.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.lang.NonNull;
@@ -27,20 +31,40 @@ public class PostService {
     private final UserRepository userRepository;
 
     @Transactional(readOnly = true)
-    public List<PostResponse> getAllPosts() {
-        return postRepository.findAllByOrderByCreatedAtDesc().stream()
-                .map(this::convertToResponse)
-                .collect(Collectors.toList());
+    public PagedResponse<PostResponse> getAllPosts(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Post> postPage = postRepository.findAllByOrderByCreatedAtDesc(pageable);
+        return buildPagedResponse(postPage);
     }
 
     @Transactional(readOnly = true)
-    public List<PostResponse> searchPosts(String query) {
+    public PagedResponse<PostResponse> searchPosts(String query, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Post> postPage;
+        
         if (query == null || query.trim().isEmpty()) {
-            return getAllPosts();
+            postPage = postRepository.findAllByOrderByCreatedAtDesc(pageable);
+        } else {
+            postPage = postRepository.findByTitleContainingIgnoreCaseOrderByCreatedAtDesc(query.trim(), pageable);
         }
-        return postRepository.findByTitleContainingIgnoreCaseOrderByCreatedAtDesc(query.trim()).stream()
+        
+        return buildPagedResponse(postPage);
+    }
+
+    private PagedResponse<PostResponse> buildPagedResponse(Page<Post> postPage) {
+        List<PostResponse> content = postPage.getContent().stream()
                 .map(this::convertToResponse)
                 .collect(Collectors.toList());
+
+        return PagedResponse.<PostResponse>builder()
+                .content(content)
+                .pageNumber(postPage.getNumber())
+                .pageSize(postPage.getSize())
+                .totalElements(postPage.getTotalElements())
+                .totalPages(postPage.getTotalPages())
+                .first(postPage.isFirst())
+                .last(postPage.isLast())
+                .build();
     }
 
     @Transactional(readOnly = true)
