@@ -47,7 +47,7 @@ public class Post {
     @Builder.Default
     private int price = 0;
 
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "bigint default 0")
     @Builder.Default
     private long viewCount = 0;
 
