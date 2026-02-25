@@ -24,6 +24,10 @@ export default function PostDetailPage() {
   const [showShare, setShowShare] = useState(false);
   const [editingCommentId, setEditingCommentId] = useState(null);
   const [editingContent, setEditingContent] = useState('');
+  const [commentPage, setCommentPage] = useState(null);  // PagedResponse from backend
+  const [commentPageNum, setCommentPageNum] = useState(0);
+  const [commentsLoading, setCommentsLoading] = useState(false);
+  const COMMENTS_PAGE_SIZE = 10;
 
   const fetchPost = useCallback(async () => {
     try {
@@ -56,18 +60,26 @@ export default function PostDetailPage() {
     }
   };
 
-  const fetchComments = useCallback(async () => {
+  const fetchComments = useCallback(async (page = 0) => {
+    setCommentsLoading(true);
     try {
-      const response = await client.get(`/api/posts/${id}/comments`);
-      setComments(response.data.data);
+      const response = await client.get(`/api/posts/${id}/comments`, {
+        params: { page, size: COMMENTS_PAGE_SIZE },
+      });
+      const paged = response.data.data;          // PagedResponse
+      setCommentPage(paged);
+      setComments(paged.content);
+      setCommentPageNum(paged.pageNumber);
     } catch {
       console.error('Failed to load comments');
+    } finally {
+      setCommentsLoading(false);
     }
   }, [id]);
 
   useEffect(() => {
     fetchPost();
-    fetchComments();
+    fetchComments(0);
   }, [fetchPost, fetchComments]);
 
   const handlePay = async () => {
@@ -132,7 +144,11 @@ export default function PostDetailPage() {
     try {
       await client.post(`/api/posts/${id}/comments`, { content: newComment });
       setNewComment('');
-      fetchComments();
+      // After posting, jump to last page to see the new comment
+      // We'll find the last page from current totalElements + 1
+      const newTotal = (commentPage?.totalElements ?? 0) + 1;
+      const newLastPage = Math.max(0, Math.ceil(newTotal / COMMENTS_PAGE_SIZE) - 1);
+      fetchComments(newLastPage);
     } catch {
       alert('Failed to post comment');
     }
@@ -142,7 +158,12 @@ export default function PostDetailPage() {
     if (!window.confirm('Delete this comment?')) return;
     try {
       await client.delete(`/api/posts/${id}/comments/${commentId}`);
-      fetchComments();
+      // After deletion, if this was the last item on a non-first page, go back one page
+      const remainingOnPage = comments.length - 1;
+      const targetPage = remainingOnPage === 0 && commentPageNum > 0
+        ? commentPageNum - 1
+        : commentPageNum;
+      fetchComments(targetPage);
     } catch {
       alert('Failed to delete comment');
     }
@@ -159,7 +180,7 @@ export default function PostDetailPage() {
       await client.put(`/api/posts/${id}/comments/${commentId}`, { content: editingContent });
       setEditingCommentId(null);
       setEditingContent('');
-      fetchComments();
+      fetchComments(commentPageNum);
     } catch {
       alert('Failed to update comment');
     }
@@ -423,7 +444,7 @@ export default function PostDetailPage() {
                 <path fillRule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clipRule="evenodd" />
               </svg>
             </div>
-            <span>Comments ({comments.length})</span>
+            <span>Comments ({commentPage ? commentPage.totalElements : comments.length})</span>
           </h2>
 
           {isAuthenticated && (
@@ -552,6 +573,82 @@ export default function PostDetailPage() {
               })
             )}
           </div>
+
+          {/* Comments loading spinner (page transitions) */}
+          {commentsLoading && (
+            <div className="flex justify-center py-4">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-violet-600"></div>
+            </div>
+          )}
+
+          {/* Pagination controls */}
+          {commentPage && commentPage.totalPages > 1 && (
+            <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-200 dark:border-slate-700">
+              <button
+                onClick={() => fetchComments(commentPageNum - 1)}
+                disabled={commentPage.first || commentsLoading}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl font-semibold text-sm bg-white dark:bg-slate-700 border border-gray-200 dark:border-slate-600 text-gray-700 dark:text-slate-300 hover:bg-violet-50 dark:hover:bg-slate-600 hover:text-violet-600 dark:hover:text-violet-400 hover:border-violet-300 transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+                Previous
+              </button>
+
+              <div className="flex items-center gap-1">
+                {Array.from({ length: commentPage.totalPages }, (_, i) => {
+                  // Show at most 5 page buttons; ellipsis otherwise
+                  const total = commentPage.totalPages;
+                  const cur = commentPageNum;
+                  const show =
+                    total <= 5 ||
+                    i === 0 ||
+                    i === total - 1 ||
+                    Math.abs(i - cur) <= 1;
+                  const showLeft = i === 1 && cur > 2 && total > 5;
+                  const showRight = i === total - 2 && cur < total - 3 && total > 5;
+                  if (showLeft || showRight) {
+                    return (
+                      <span key={i} className="px-1 text-gray-400 dark:text-slate-500 select-none">…</span>
+                    );
+                  }
+                  if (!show) return null;
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => fetchComments(i)}
+                      disabled={commentsLoading}
+                      className={`w-9 h-9 rounded-xl font-semibold text-sm transition-all shadow-sm ${
+                        i === commentPageNum
+                          ? 'bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white shadow-violet-200 dark:shadow-violet-900'
+                          : 'bg-white dark:bg-slate-700 border border-gray-200 dark:border-slate-600 text-gray-700 dark:text-slate-300 hover:bg-violet-50 dark:hover:bg-slate-600 hover:text-violet-600 dark:hover:text-violet-400'
+                      }`}
+                    >
+                      {i + 1}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <button
+                onClick={() => fetchComments(commentPageNum + 1)}
+                disabled={commentPage.last || commentsLoading}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl font-semibold text-sm bg-white dark:bg-slate-700 border border-gray-200 dark:border-slate-600 text-gray-700 dark:text-slate-300 hover:bg-violet-50 dark:hover:bg-slate-600 hover:text-violet-600 dark:hover:text-violet-400 hover:border-violet-300 transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
+              >
+                Next
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+            </div>
+          )}
+
+          {/* Page info text when there are multiple pages */}
+          {commentPage && commentPage.totalPages > 1 && (
+            <p className="text-center text-sm text-gray-500 dark:text-slate-500 mt-2">
+              Page {commentPageNum + 1} of {commentPage.totalPages} · {commentPage.totalElements} comments
+            </p>
+          )}
         </div>
       </div>
 

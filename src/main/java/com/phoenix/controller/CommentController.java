@@ -3,6 +3,7 @@ package com.phoenix.controller;
 import com.phoenix.dto.ApiResponse;
 import com.phoenix.dto.CommentRequest;
 import com.phoenix.dto.CommentResponse;
+import com.phoenix.dto.PagedResponse;
 import com.phoenix.service.CommentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -13,7 +14,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -25,8 +25,11 @@ public class CommentController {
     private final CommentService commentService;
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<CommentResponse>>> getCommentsByPostId(@PathVariable @NonNull UUID postId) {
-        List<CommentResponse> comments = commentService.getCommentsByPostId(postId);
+    public ResponseEntity<ApiResponse<PagedResponse<CommentResponse>>> getCommentsByPostId(
+            @PathVariable @NonNull UUID postId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        PagedResponse<CommentResponse> comments = commentService.getCommentsByPostId(postId, page, size);
         return ResponseEntity.ok(ApiResponse.success("Comments retrieved successfully", comments));
     }
 

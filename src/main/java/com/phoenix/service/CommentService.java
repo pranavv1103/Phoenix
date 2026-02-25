@@ -2,6 +2,7 @@ package com.phoenix.service;
 
 import com.phoenix.dto.CommentRequest;
 import com.phoenix.dto.CommentResponse;
+import com.phoenix.dto.PagedResponse;
 import com.phoenix.entity.Comment;
 import com.phoenix.entity.Post;
 import com.phoenix.entity.User;
@@ -11,6 +12,9 @@ import com.phoenix.repository.CommentRepository;
 import com.phoenix.repository.PostRepository;
 import com.phoenix.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.lang.NonNull;
@@ -30,14 +34,27 @@ public class CommentService {
     private final UserRepository userRepository;
 
     @Transactional(readOnly = true)
-    public List<CommentResponse> getCommentsByPostId(@NonNull UUID postId) {
+    public PagedResponse<CommentResponse> getCommentsByPostId(@NonNull UUID postId, int page, int size) {
         if (!postRepository.existsById(Objects.requireNonNull(postId))) {
             throw new PostNotFoundException("Post not found with id: " + postId);
         }
 
-        return commentRepository.findByPostIdOrderByCreatedAtAsc(postId).stream()
+        PageRequest pageable = PageRequest.of(page, size, Sort.by("createdAt").ascending());
+        Page<Comment> commentPage = commentRepository.findByPostIdOrderByCreatedAtAsc(postId, pageable);
+
+        List<CommentResponse> content = commentPage.getContent().stream()
                 .map(this::convertToResponse)
                 .collect(Collectors.toList());
+
+        return PagedResponse.<CommentResponse>builder()
+                .content(content)
+                .pageNumber(commentPage.getNumber())
+                .pageSize(commentPage.getSize())
+                .totalElements(commentPage.getTotalElements())
+                .totalPages(commentPage.getTotalPages())
+                .first(commentPage.isFirst())
+                .last(commentPage.isLast())
+                .build();
     }
 
     @Transactional
