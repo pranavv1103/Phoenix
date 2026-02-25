@@ -27,10 +27,19 @@ export default function HomePage() {
   const [totalElements, setTotalElements] = useState(0);
   const [isFirst, setIsFirst] = useState(true);
   const [isLast, setIsLast] = useState(true);
+  const [availableTags, setAvailableTags] = useState([]);
+  const [selectedTag, setSelectedTag] = useState('');
   const searchRef = useRef(null);
   const pageSize = 6;
   const navigate = useNavigate();
   const { isAuthenticated } = useAuthStore();
+
+  // Fetch available tags on mount
+  useEffect(() => {
+    client.get('/api/tags').then(res => {
+      setAvailableTags(res.data.data || []);
+    }).catch(() => {});
+  }, []);
 
   const handleLike = async (e, postId) => {
     e.preventDefault();
@@ -61,10 +70,15 @@ export default function HomePage() {
     return () => clearTimeout(timeoutId);
   }, [searchQuery]);
 
+  // Reset page when tag filter changes
+  useEffect(() => {
+    setCurrentPage(0);
+  }, [selectedTag]);
+
   // Fetch posts only when debounced query or page changes
   useEffect(() => {
     fetchPosts();
-  }, [debouncedSearchQuery, currentPage, sortOption]);
+  }, [debouncedSearchQuery, currentPage, sortOption, selectedTag]);
 
   const fetchPosts = async () => {
     try {
@@ -73,6 +87,9 @@ export default function HomePage() {
       url += `&sort=${encodeURIComponent(sortOption)}`;
       if (debouncedSearchQuery.trim()) {
         url += `&search=${encodeURIComponent(debouncedSearchQuery.trim())}`;
+      }
+      if (selectedTag) {
+        url += `&tag=${encodeURIComponent(selectedTag)}`;
       }
       const response = await client.get(url);
       const pageData = response.data.data;
@@ -107,6 +124,10 @@ export default function HomePage() {
   const handleSortChange = (e) => {
     setSortOption(e.target.value);
     setCurrentPage(0);
+  };
+
+  const handleTagClick = (tag) => {
+    setSelectedTag(prev => prev === tag ? '' : tag);
   };
 
   return (
@@ -163,7 +184,43 @@ export default function HomePage() {
               </select>
             </div>
           </div>
+
+          {/* Tag filter pills */}
+          {availableTags.length > 0 && (
+            <div className="flex flex-wrap gap-2 mt-4 justify-center">
+              {availableTags.map(tag => (
+                <button
+                  key={tag}
+                  onClick={() => handleTagClick(tag)}
+                  className={`px-4 py-1.5 rounded-full text-sm font-semibold border-2 transition-all duration-200 hover:scale-105 ${
+                    selectedTag === tag
+                      ? 'bg-violet-600 border-violet-600 text-white shadow-md'
+                      : 'bg-white dark:bg-slate-800 border-violet-300 dark:border-violet-700 text-violet-700 dark:text-violet-300 hover:border-violet-500'
+                  }`}
+                >
+                  #{tag}
+                </button>
+              ))}
+              {selectedTag && (
+                <button
+                  onClick={() => setSelectedTag('')}
+                  className="px-4 py-1.5 rounded-full text-sm font-semibold border-2 border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 bg-white dark:bg-slate-800 hover:border-red-400 hover:text-red-500 transition-all duration-200"
+                >
+                  ✕ Clear filter
+                </button>
+              )}
+            </div>
+          )}
         </div>
+
+        {selectedTag && (
+          <div className="max-w-4xl mx-auto mb-4 flex items-center gap-2 text-sm">
+            <span className="text-gray-500 dark:text-slate-400">Filtering by:</span>
+            <span className="inline-flex items-center gap-1 px-3 py-1 bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300 rounded-full font-semibold border border-violet-300 dark:border-violet-700">
+              #{selectedTag}
+            </span>
+          </div>
+        )}
 
         {loading ? (
           <div className="flex justify-center items-center py-20">
@@ -258,7 +315,24 @@ export default function HomePage() {
                         {post.readingTimeMinutes || 1} min read
                       </span>
                     </div>
-                    <p className="text-gray-700 mb-8 line-clamp-3 leading-relaxed dark:text-slate-300">{previewText}</p>
+                    <p className="text-gray-700 mb-3 line-clamp-3 leading-relaxed dark:text-slate-300">{previewText}</p>
+                    {post.tags && post.tags.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 mb-4">
+                        {post.tags.map(tag => (
+                          <button
+                            key={tag}
+                            onClick={(e) => { e.stopPropagation(); handleTagClick(tag); }}
+                            className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border transition-all duration-150 hover:scale-105 ${
+                              selectedTag === tag
+                                ? 'bg-violet-600 border-violet-600 text-white'
+                                : 'bg-violet-50 border-violet-200 text-violet-700 hover:bg-violet-100 dark:bg-violet-900/30 dark:border-violet-700 dark:text-violet-300'
+                            }`}
+                          >
+                            #{tag}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                     <div className="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-slate-700">
                       <div className="flex items-center gap-2">
                         <div className={`w-12 h-12 bg-gradient-to-br ${gradient} rounded-full flex items-center justify-center text-white font-bold shadow-md ring-2 ring-white`}>

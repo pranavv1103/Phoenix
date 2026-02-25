@@ -4,6 +4,7 @@ import com.phoenix.dto.PagedResponse;
 import com.phoenix.dto.PostRequest;
 import com.phoenix.dto.PostResponse;
 import com.phoenix.entity.Post;
+import com.phoenix.entity.Tag;
 import com.phoenix.entity.User;
 import com.phoenix.entity.UserRole;
 import com.phoenix.exception.PostNotFoundException;
@@ -14,6 +15,7 @@ import com.phoenix.repository.PaymentRepository;
 import com.phoenix.repository.PostRepository;
 import com.phoenix.repository.PostViewRepository;
 import com.phoenix.entity.PostView;
+import com.phoenix.repository.TagRepository;
 import com.phoenix.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -27,6 +29,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.lang.NonNull;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -42,11 +45,20 @@ public class PostService {
     private final CommentRepository commentRepository;
     private final PaymentRepository paymentRepository;
     private final PostViewRepository postViewRepository;
+    private final TagRepository tagRepository;
 
     @Transactional(readOnly = true)
-    public PagedResponse<PostResponse> getAllPosts(int page, int size, String sort) {
+    public PagedResponse<PostResponse> getAllPosts(int page, int size, String sort, String tag) {
         Page<Post> postPage;
-        if (isMostLiked(sort)) {
+        boolean hasTag = tag != null && !tag.trim().isEmpty();
+        if (hasTag) {
+            String t = tag.trim().toLowerCase();
+            if (isMostLiked(sort)) {
+                postPage = postRepository.findByTagNameOrderByLikeCountDesc(t, PageRequest.of(page, size));
+            } else {
+                postPage = postRepository.findByTags_Name(t, buildPageable(page, size, sort));
+            }
+        } else if (isMostLiked(sort)) {
             postPage = postRepository.findAllOrderByLikeCountDesc(PageRequest.of(page, size));
         } else {
             postPage = postRepository.findAll(buildPageable(page, size, sort));
@@ -55,20 +67,30 @@ public class PostService {
     }
 
     @Transactional(readOnly = true)
-    public PagedResponse<PostResponse> searchPosts(String query, int page, int size, String sort) {
+    public PagedResponse<PostResponse> searchPosts(String query, int page, int size, String sort, String tag) {
         if (query == null || query.trim().isEmpty()) {
-            return getAllPosts(page, size, sort);
+            return getAllPosts(page, size, sort, tag);
         }
 
+        boolean hasTag = tag != null && !tag.trim().isEmpty();
         Pageable pageable = buildPageable(page, size, sort);
         Page<Post> postPage;
-        
-        if (isMostLiked(sort)) {
+
+        if (hasTag) {
+            String t = tag.trim().toLowerCase();
+            if (isMostLiked(sort)) {
+                postPage = postRepository.findByTitleContainingIgnoreCaseAndTagNameOrderByLikeCountDesc(
+                        query.trim(), t, PageRequest.of(page, size));
+            } else {
+                postPage = postRepository.findByTitleContainingIgnoreCaseAndTags_Name(
+                        query.trim(), t, pageable);
+            }
+        } else if (isMostLiked(sort)) {
             postPage = postRepository.findByTitleContainingIgnoreCaseOrderByLikeCountDesc(query.trim(), PageRequest.of(page, size));
         } else {
             postPage = postRepository.findByTitleContainingIgnoreCase(query.trim(), pageable);
         }
-        
+
         return buildPagedResponse(postPage);
     }
 
@@ -140,6 +162,10 @@ public class PostService {
                 .author(author)
                 .build();
 
+        if (request.getTags() != null && !request.getTags().isEmpty()) {
+            post.setTags(resolveOrCreateTags(request.getTags()));
+        }
+
         Post savedPost = postRepository.save(Objects.requireNonNull(post));
         return convertToResponse(savedPost);
     }
@@ -157,6 +183,11 @@ public class PostService {
         post.setContent(request.getContent());
         post.setPremium(request.isPremium());
         post.setPrice(request.getPrice());
+
+        post.getTags().clear();
+        if (request.getTags() != null && !request.getTags().isEmpty()) {
+            post.getTags().addAll(resolveOrCreateTags(request.getTags()));
+        }
 
         Post updatedPost = postRepository.save(post);
         return convertToResponse(updatedPost);
@@ -216,6 +247,10 @@ public class PostService {
                 fullContent.trim().split("\\s+").length;
         int readingTimeMinutes = Math.max(1, (int) Math.ceil(wordCount / 200.0));
 
+        List<String> tagNames = (post.getTags() != null)
+                ? post.getTags().stream().map(Tag::getName).collect(Collectors.toList())
+                : new ArrayList<>();
+
         return PostResponse.builder()
                 .id(post.getId())
                 .title(post.getTitle())
@@ -233,7 +268,23 @@ public class PostService {
                 .author(isAuthor)
                 .viewCount(post.getViewCount())
                 .readingTimeMinutes(readingTimeMinutes)
+                .tags(tagNames)
                 .build();
+    }
+
+    /**
+     * Find or create Tag entities for the given list of tag name strings.
+     * Names are lowercased, trimmed, deduplicated, and capped at 5.
+     */
+    private List<Tag> resolveOrCreateTags(List<String> tagNames) {
+        return tagNames.stream()
+                .filter(n -> n != null && !n.isBlank())
+                .map(n -> n.trim().toLowerCase())
+                .distinct()
+                .limit(5)
+                .map(name -> tagRepository.findByName(name)
+                        .orElseGet(() -> tagRepository.save(Tag.builder().name(name).build())))
+                .collect(Collectors.toList());
     }
 
     /** Truncate {@code text} to at most {@code maxWords} words, appending "..." if truncated. */

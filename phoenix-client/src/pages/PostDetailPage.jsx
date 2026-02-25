@@ -277,7 +277,20 @@ export default function PostDetailPage() {
             </div>
           </div>
           
-          <div className="h-1.5 bg-gradient-to-r from-cyan-500 via-blue-500 via-violet-500 to-fuchsia-500 rounded-full mb-8"></div>
+          <div className="h-1.5 bg-gradient-to-r from-cyan-500 via-blue-500 via-violet-500 to-fuchsia-500 rounded-full mb-6"></div>
+
+          {post.tags && post.tags.length > 0 && (
+            <div className="flex flex-wrap gap-2 mb-8">
+              {post.tags.map(tag => (
+                <span
+                  key={tag}
+                  className="inline-flex items-center px-3 py-1 bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300 rounded-full text-sm font-semibold border border-violet-300 dark:border-violet-700"
+                >
+                  #{tag}
+                </span>
+              ))}
+            </div>
+          )}
           
           {/* Content — gated for premium posts */}
           {post.isPremium && !post.paidByCurrentUser && !isAuthor ? (

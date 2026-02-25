@@ -16,9 +16,12 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
     Page<Post> findByTitleContainingIgnoreCaseOrderByCreatedAtDesc(String title, Pageable pageable);
     Page<Post> findByTitleContainingIgnoreCase(String title, Pageable pageable);
 
+    // Tag filter (Spring Data ManyToMany traversal)
+    Page<Post> findByTags_Name(String tagName, Pageable pageable);
+    Page<Post> findByTitleContainingIgnoreCaseAndTags_Name(String title, String tagName, Pageable pageable);
+
     @Query(
-        value = "select p from Post p left join Like l on l.post = p group by p " +
-            "order by count(l) desc, p.createdAt desc",
+        value = "select p from Post p left join Like l on l.post = p group by p order by count(l) desc, p.createdAt desc",
         countQuery = "select count(p) from Post p"
     )
     Page<Post> findAllOrderByLikeCountDesc(Pageable pageable);
@@ -32,6 +35,29 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
     )
     Page<Post> findByTitleContainingIgnoreCaseOrderByLikeCountDesc(
         @Param("title") String title,
+        Pageable pageable
+    );
+
+    @Query(
+        value = "select p from Post p left join Like l on l.post = p join p.tags t " +
+            "where t.name = :tag group by p order by count(l) desc, p.createdAt desc",
+        countQuery = "select count(p) from Post p join p.tags t where t.name = :tag"
+    )
+    Page<Post> findByTagNameOrderByLikeCountDesc(
+        @Param("tag") String tag,
+        Pageable pageable
+    );
+
+    @Query(
+        value = "select p from Post p left join Like l on l.post = p join p.tags t " +
+            "where lower(p.title) like lower(concat('%', :title, '%')) and t.name = :tag " +
+            "group by p order by count(l) desc, p.createdAt desc",
+        countQuery = "select count(p) from Post p join p.tags t " +
+            "where lower(p.title) like lower(concat('%', :title, '%')) and t.name = :tag"
+    )
+    Page<Post> findByTitleContainingIgnoreCaseAndTagNameOrderByLikeCountDesc(
+        @Param("title") String title,
+        @Param("tag") String tag,
         Pageable pageable
     );
 }

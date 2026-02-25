@@ -8,9 +8,30 @@ export default function CreatePostPage() {
   const [content, setContent] = useState('');
   const [isPremium, setIsPremium] = useState(false);
   const [price, setPrice] = useState('');
+  const [tags, setTags] = useState([]);
+  const [tagInput, setTagInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
+
+  const addTag = (raw) => {
+    const tag = raw.trim().toLowerCase().replace(/[^a-z0-9-]/g, '');
+    if (tag && tags.length < 5 && !tags.includes(tag)) {
+      setTags(prev => [...prev, tag]);
+    }
+    setTagInput('');
+  };
+
+  const handleTagKeyDown = (e) => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      addTag(tagInput);
+    } else if (e.key === 'Backspace' && !tagInput && tags.length > 0) {
+      setTags(prev => prev.slice(0, -1));
+    }
+  };
+
+  const removeTag = (tag) => setTags(prev => prev.filter(t => t !== tag));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -25,7 +46,7 @@ export default function CreatePostPage() {
 
     try {
       const priceInPaise = isPremium ? Math.round(parseFloat(price || '0') * 100) : 0;
-      const response = await client.post('/api/posts', { title, content, isPremium, price: priceInPaise });
+      const response = await client.post('/api/posts', { title, content, isPremium, price: priceInPaise, tags });
       navigate(`/posts/${response.data.data.id}`);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to create post');
@@ -82,6 +103,37 @@ export default function CreatePostPage() {
                   preview="live"
                   className="rounded-xl overflow-hidden"
                 />
+              </div>
+            </div>
+
+            {/* Tags */}
+            <div className="transform transition-all duration-300 hover:scale-[1.01]">
+              <label className="block text-gray-700 dark:text-slate-300 mb-2 font-semibold text-lg">
+                Tags
+                <span className="ml-2 text-sm font-normal text-gray-500 dark:text-slate-400">(up to 5 — press Enter or comma to add)</span>
+              </label>
+              <div className="flex flex-wrap gap-2 p-3 border-2 border-gray-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-700 focus-within:border-orange-500 focus-within:ring-4 focus-within:ring-orange-100 dark:focus-within:ring-orange-900/40 transition-all duration-300 min-h-[52px]">
+                {tags.map(tag => (
+                  <span key={tag} className="inline-flex items-center gap-1 px-3 py-1 bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300 rounded-full text-sm font-semibold border border-violet-300 dark:border-violet-700">
+                    #{tag}
+                    <button type="button" onClick={() => removeTag(tag)} className="ml-0.5 hover:text-red-500 transition-colors">
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </span>
+                ))}
+                {tags.length < 5 && (
+                  <input
+                    type="text"
+                    value={tagInput}
+                    onChange={e => setTagInput(e.target.value)}
+                    onKeyDown={handleTagKeyDown}
+                    onBlur={() => tagInput.trim() && addTag(tagInput)}
+                    placeholder={tags.length === 0 ? 'e.g. javascript, webdev...' : ''}
+                    className="flex-1 min-w-[120px] outline-none bg-transparent text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500 text-sm"
+                  />
+                )}
               </div>
             </div>
 

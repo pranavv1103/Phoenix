@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Data
@@ -31,4 +32,5 @@ public class PostResponse {
     private boolean author;
     private long viewCount;
     private int readingTimeMinutes;
+    private List<String> tags;
 }

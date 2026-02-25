@@ -6,6 +6,9 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -21,4 +24,6 @@ public class PostRequest {
     private boolean isPremium = false;
 
     private int price = 0;
+
+    private List<String> tags = new ArrayList<>();
 }

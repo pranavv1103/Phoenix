@@ -12,10 +12,31 @@ export default function EditPostPage() {
   const [content, setContent] = useState('');
   const [isPremium, setIsPremium] = useState(false);
   const [price, setPrice] = useState('');
+  const [tags, setTags] = useState([]);
+  const [tagInput, setTagInput] = useState('');
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [post, setPost] = useState(null);
+
+  const addTag = (raw) => {
+    const tag = raw.trim().toLowerCase().replace(/[^a-z0-9-]/g, '');
+    if (tag && tags.length < 5 && !tags.includes(tag)) {
+      setTags(prev => [...prev, tag]);
+    }
+    setTagInput('');
+  };
+
+  const handleTagKeyDown = (e) => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      addTag(tagInput);
+    } else if (e.key === 'Backspace' && !tagInput && tags.length > 0) {
+      setTags(prev => prev.slice(0, -1));
+    }
+  };
+
+  const removeTag = (tag) => setTags(prev => prev.filter(t => t !== tag));
 
   useEffect(() => {
     const fetchPost = async () => {
@@ -34,6 +55,7 @@ export default function EditPostPage() {
         setTitle(postData.title);
         setIsPremium(postData.isPremium || false);
         setPrice(postData.price ? (postData.price / 100).toString() : '');
+        setTags(postData.tags || []);
         // Load only the actual saved content, no template text
         setContent(postData.content || '');
       } catch {
@@ -57,7 +79,7 @@ export default function EditPostPage() {
       setSubmitting(true);
       setError('');
       const priceInPaise = isPremium ? Math.round(parseFloat(price || '0') * 100) : 0;
-      await client.put(`/api/posts/${id}`, { title, content, isPremium, price: priceInPaise });
+      await client.put(`/api/posts/${id}`, { title, content, isPremium, price: priceInPaise, tags });
       navigate(`/posts/${id}`);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to update post');
@@ -138,6 +160,37 @@ export default function EditPostPage() {
                   preview="live"
                   className="rounded-xl overflow-hidden"
                 />
+              </div>
+            </div>
+
+            {/* Tags */}
+            <div>
+              <label className="block text-gray-700 dark:text-slate-300 font-semibold mb-3">
+                Tags
+                <span className="ml-2 text-sm font-normal text-gray-500 dark:text-slate-400">(up to 5 — press Enter or comma to add)</span>
+              </label>
+              <div className="flex flex-wrap gap-2 p-3 border-2 border-gray-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-700 focus-within:border-blue-500 focus-within:ring-4 focus-within:ring-blue-100 dark:focus-within:ring-blue-900/40 transition-all duration-300 min-h-[52px]">
+                {tags.map(tag => (
+                  <span key={tag} className="inline-flex items-center gap-1 px-3 py-1 bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300 rounded-full text-sm font-semibold border border-violet-300 dark:border-violet-700">
+                    #{tag}
+                    <button type="button" onClick={() => removeTag(tag)} className="ml-0.5 hover:text-red-500 transition-colors">
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </span>
+                ))}
+                {tags.length < 5 && (
+                  <input
+                    type="text"
+                    value={tagInput}
+                    onChange={e => setTagInput(e.target.value)}
+                    onKeyDown={handleTagKeyDown}
+                    onBlur={() => tagInput.trim() && addTag(tagInput)}
+                    placeholder={tags.length === 0 ? 'e.g. javascript, webdev...' : ''}
+                    className="flex-1 min-w-[120px] outline-none bg-transparent text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500 text-sm"
+                  />
+                )}
               </div>
             </div>
 
