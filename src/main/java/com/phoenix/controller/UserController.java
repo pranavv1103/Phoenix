@@ -31,8 +31,9 @@ public class UserController {
     public ResponseEntity<ApiResponse<UserProfileResponse>> getUserProfile(
             @PathVariable String username,
             @AuthenticationPrincipal UserDetails userDetails) {
-        User user = userRepository.findByName(username)
-                .orElseThrow(() -> new PostNotFoundException("User not found with username: " + username));
+        String trimmed = username.trim();
+        User user = userRepository.findByName(trimmed)
+                .orElseThrow(() -> new PostNotFoundException("User not found with username: " + trimmed));
 
         String viewerEmail = userDetails != null ? userDetails.getUsername() : null;
         java.util.Optional<User> viewerOpt = viewerEmail != null ? userRepository.findByEmail(viewerEmail) : java.util.Optional.empty();
@@ -83,7 +84,7 @@ public class UserController {
     @PostMapping("/{username}/follow")
     public ResponseEntity<ApiResponse<Boolean>> toggleFollow(@PathVariable String username) {
         String currentEmail = getCurrentUserEmail();
-        boolean nowFollowing = followService.toggleFollow(username, currentEmail);
+        boolean nowFollowing = followService.toggleFollow(username.trim(), currentEmail);
         String msg = nowFollowing ? "Now following " + username : "Unfollowed " + username;
         return ResponseEntity.ok(ApiResponse.success(msg, nowFollowing));
     }

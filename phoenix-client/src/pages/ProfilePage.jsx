@@ -15,13 +15,14 @@ export default function ProfilePage() {
   const [bookmarks, setBookmarks] = useState([]);
   const [activeTab, setActiveTab] = useState('posts'); // 'posts' | 'saved' | 'drafts'
 
-  const isOwnProfile = user?.name === username;
+  const isOwnProfile = user?.name?.trim() === username?.trim();
 
   useEffect(() => {
     const fetchProfile = async () => {
       try {
         setLoading(true);
-        const response = await client.get(`/api/users/${username}`);
+        const trimmedName = username?.trim();
+        const response = await client.get(`/api/users/${encodeURIComponent(trimmedName)}`);
         setProfile(response.data.data);
       } catch {
         setError('User not found');
@@ -61,7 +62,7 @@ export default function ProfilePage() {
 
   const handleFollow = async () => {
     try {
-      const res = await client.post(`/api/users/${username}/follow`);
+      const res = await client.post(`/api/users/${encodeURIComponent(username?.trim())}/follow`);
       const nowFollowing = res.data.data;
       setProfile(prev => ({
         ...prev,

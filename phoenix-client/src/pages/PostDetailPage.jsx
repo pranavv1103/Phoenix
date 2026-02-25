@@ -281,10 +281,10 @@ export default function PostDetailPage() {
                   {postAuthorInitial}
                 </div>
                 <Link 
-                  to={`/profile/${postAuthorName}`}
+                  to={`/profile/${encodeURIComponent(postAuthorName?.trim())}`}
                   className="font-bold text-gray-900 dark:text-slate-100 text-lg hover:text-blue-600 dark:hover:text-blue-400 hover:underline transition-colors duration-200"
                 >
-                  {postAuthorName}
+                  {postAuthorName?.trim()}
                 </Link>
               </div>
               <span className="text-gray-400 dark:text-slate-500">•</span>
@@ -608,10 +608,10 @@ export default function PostDetailPage() {
                         {commentAuthorInitial}
                       </div>
                       <Link 
-                        to={`/profile/${commentAuthorName}`}
+                        to={`/profile/${encodeURIComponent(commentAuthorName?.trim())}`}
                         className="font-bold text-gray-900 dark:text-slate-100 hover:text-blue-600 dark:hover:text-blue-400 hover:underline transition-colors duration-200"
                       >
-                        {commentAuthorName}
+                        {commentAuthorName?.trim()}
                       </Link>
                       <span className="text-gray-400 dark:text-slate-500">•</span>
                       <span className="text-sm text-gray-600 dark:text-slate-400 font-medium">{formatRelativeTime(comment.createdAt)}</span>

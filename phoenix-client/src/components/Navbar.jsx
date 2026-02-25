@@ -1,10 +1,12 @@
 import { Link } from 'react-router-dom';
 import useAuthStore from '../store/authStore';
 import { useDarkMode } from '../hooks/useDarkMode';
+import { useNavigate } from 'react-router-dom';
 
 export default function Navbar() {
   const { isAuthenticated, user, logout } = useAuthStore();
   const { isDarkMode, toggleDarkMode } = useDarkMode();
+  const navigate = useNavigate();
 
   const handleLogout = () => {
     logout();
@@ -50,11 +52,13 @@ export default function Navbar() {
                     Admin
                   </Link>
                 )}
-                <div className="flex items-center gap-3 px-4 py-2 rounded-xl bg-gradient-to-r from-white/20 to-white/10 backdrop-blur-md border border-white/30">
+                <div
+                  onClick={() => navigate(`/profile/${encodeURIComponent(user?.name?.trim())}`)}
+                  className="flex items-center gap-3 px-4 py-2 rounded-xl bg-gradient-to-r from-white/20 to-white/10 backdrop-blur-md border border-white/30 cursor-pointer hover:from-white/30 hover:to-white/20 transition-all duration-300">
                   <div className="w-9 h-9 bg-gradient-to-br from-amber-400 via-orange-500 to-rose-500 rounded-full flex items-center justify-center text-sm font-bold shadow-lg ring-2 ring-white/50">
                     {user?.name?.charAt(0)?.toUpperCase() || '?'}
                   </div>
-                  <span className="text-sm font-semibold">Welcome, {user?.name}</span>
+                  <span className="text-sm font-semibold">Welcome, {user?.name?.trim()}</span>
                 </div>
                 <button
                   onClick={handleLogout}

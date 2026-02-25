@@ -340,11 +340,11 @@ export default function HomePage() {
                         </div>
                         <div>
                           <Link 
-                            to={`/profile/${post.authorName}`} 
+                            to={`/profile/${encodeURIComponent(post.authorName?.trim())}`} 
                             onClick={(e) => e.stopPropagation()}
                             className="text-sm font-bold text-gray-900 hover:text-blue-600 hover:underline transition-colors duration-200 dark:text-slate-100 dark:hover:text-cyan-300"
                           >
-                            {post.authorName}
+                            {post.authorName?.trim()}
                           </Link>
                           <p className="text-xs text-gray-600 dark:text-slate-400">{formatRelativeTime(post.createdAt)}</p>
                         </div>
