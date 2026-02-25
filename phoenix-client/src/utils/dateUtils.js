@@ -27,7 +27,14 @@ const toDate = (value) => {
   }
 
   if (typeof value === 'string' || typeof value === 'number') {
-    const parsedDate = new Date(value);
+    let normalized = value;
+    // If it's an ISO datetime string with no timezone indicator (no Z, no +HH, no -HH after time)
+    // the server is UTC but JS parses it as local time → future date → always "just now".
+    // Append Z so it's always parsed as UTC.
+    if (typeof normalized === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(normalized) && !/[Zz]|[+-]\d{2}:\d{2}$/.test(normalized)) {
+      normalized = normalized + 'Z';
+    }
+    const parsedDate = new Date(normalized);
     return Number.isNaN(parsedDate.getTime()) ? null : parsedDate;
   }
 
