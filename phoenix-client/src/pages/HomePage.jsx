@@ -4,6 +4,17 @@ import client from '../api/client';
 import useAuthStore from '../store/authStore';
 import { formatRelativeTime } from '../utils/dateUtils';
 
+const stripMarkdown = (text) => {
+  return text
+    .replace(/!?\[([^\]]+)\]\([^)]+\)/g, '$1')
+    .replace(/#{1,6}\s/g, '')
+    .replace(/[*_~]/g, '')
+    .replace(/\x60/g, '')
+    .replace(/^[>\-+*]\s/gm, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+};
+
 export default function HomePage() {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -217,17 +228,6 @@ export default function HomePage() {
               ];
               const bgGradient = bgGradients[index % bgGradients.length];
               
-              // Strip markdown symbols and show plain text preview
-              const stripMarkdown = (text) => {
-                return text
-                  .replace(/!?\[([^\]]+)\]\([^)]+\)/g, '$1')
-                  .replace(/#{1,6}\s/g, '')
-                  .replace(/[*_~]/g, '')
-                  .replace(/`/g, '')
-                  .replace(/^[>\-+*]\s/gm, '')
-                  .replace(/\s+/g, ' ')
-                  .trim();
-              };
               const previewText = stripMarkdown(post.content).substring(0, 150) + (post.content.length > 150 ? '...' : '');
               
               return (
