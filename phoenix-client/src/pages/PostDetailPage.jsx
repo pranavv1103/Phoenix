@@ -22,6 +22,8 @@ export default function PostDetailPage() {
   const [payLoading, setPayLoading] = useState(false);
   const [showBackTop, setShowBackTop] = useState(false);
   const [showShare, setShowShare] = useState(false);
+  const [editingCommentId, setEditingCommentId] = useState(null);
+  const [editingContent, setEditingContent] = useState('');
 
   const fetchPost = useCallback(async () => {
     try {
@@ -127,13 +129,39 @@ export default function PostDetailPage() {
   const handleCommentSubmit = async (e) => {
     e.preventDefault();
     if (!newComment.trim()) return;
-
     try {
       await client.post(`/api/posts/${id}/comments`, { content: newComment });
       setNewComment('');
       fetchComments();
     } catch {
       alert('Failed to post comment');
+    }
+  };
+
+  const handleDeleteComment = async (commentId) => {
+    if (!window.confirm('Delete this comment?')) return;
+    try {
+      await client.delete(`/api/posts/${id}/comments/${commentId}`);
+      fetchComments();
+    } catch {
+      alert('Failed to delete comment');
+    }
+  };
+
+  const handleEditComment = (comment) => {
+    setEditingCommentId(comment.id);
+    setEditingContent(comment.content);
+  };
+
+  const handleUpdateComment = async (commentId) => {
+    if (!editingContent.trim()) return;
+    try {
+      await client.put(`/api/posts/${id}/comments/${commentId}`, { content: editingContent });
+      setEditingCommentId(null);
+      setEditingContent('');
+      fetchComments();
+    } catch {
+      alert('Failed to update comment');
     }
   };
 
@@ -470,8 +498,55 @@ export default function PostDetailPage() {
                       </Link>
                       <span className="text-gray-400 dark:text-slate-500">•</span>
                       <span className="text-sm text-gray-600 dark:text-slate-400 font-medium">{formatRelativeTime(comment.createdAt)}</span>
+                      {isAuthenticated && user?.email === comment.authorEmail && (
+                        <div className="ml-auto flex items-center gap-1">
+                          <button
+                            onClick={() => handleEditComment(comment)}
+                            className="p-1.5 rounded-lg text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-slate-600 dark:hover:text-blue-400 transition-colors"
+                            title="Edit comment"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                          </button>
+                          <button
+                            onClick={() => handleDeleteComment(comment.id)}
+                            className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-slate-600 dark:hover:text-red-400 transition-colors"
+                            title="Delete comment"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        </div>
+                      )}
                     </div>
-                    <p className="text-gray-700 dark:text-slate-300 ml-12 whitespace-pre-wrap leading-relaxed">{comment.content}</p>
+                    {editingCommentId === comment.id ? (
+                      <div className="ml-12">
+                        <textarea
+                          value={editingContent}
+                          onChange={(e) => setEditingContent(e.target.value)}
+                          className="w-full px-3 py-2 border-2 border-violet-400 rounded-xl bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 resize-none focus:outline-none focus:ring-2 focus:ring-violet-300 transition-all"
+                          rows="3"
+                        />
+                        <div className="flex gap-2 mt-2">
+                          <button
+                            onClick={() => handleUpdateComment(comment.id)}
+                            className="px-4 py-1.5 bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white text-sm font-semibold rounded-lg hover:from-violet-700 hover:to-fuchsia-700 transition-all"
+                          >
+                            Save
+                          </button>
+                          <button
+                            onClick={() => { setEditingCommentId(null); setEditingContent(''); }}
+                            className="px-4 py-1.5 bg-gray-200 dark:bg-slate-600 text-gray-700 dark:text-slate-300 text-sm font-semibold rounded-lg hover:bg-gray-300 dark:hover:bg-slate-500 transition-all"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-gray-700 dark:text-slate-300 ml-12 whitespace-pre-wrap leading-relaxed">{comment.content}</p>
+                    )}
                   </div>
                 );
               })

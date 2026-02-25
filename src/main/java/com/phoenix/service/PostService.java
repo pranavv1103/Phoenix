@@ -12,6 +12,8 @@ import com.phoenix.repository.CommentRepository;
 import com.phoenix.repository.LikeRepository;
 import com.phoenix.repository.PaymentRepository;
 import com.phoenix.repository.PostRepository;
+import com.phoenix.repository.PostViewRepository;
+import com.phoenix.entity.PostView;
 import com.phoenix.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -39,6 +41,7 @@ public class PostService {
     private final LikeRepository likeRepository;
     private final CommentRepository commentRepository;
     private final PaymentRepository paymentRepository;
+    private final PostViewRepository postViewRepository;
 
     @Transactional(readOnly = true)
     public PagedResponse<PostResponse> getAllPosts(int page, int size, String sort) {
@@ -105,8 +108,21 @@ public class PostService {
     public PostResponse getPostById(@NonNull UUID id) {
         Post post = postRepository.findById(Objects.requireNonNull(id))
                 .orElseThrow(() -> new PostNotFoundException("Post not found with id: " + id));
-        post.setViewCount(post.getViewCount() + 1);
-        postRepository.save(post);
+
+        // Count only unique views per authenticated user
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.isAuthenticated() && !auth.getPrincipal().equals("anonymousUser")) {
+            User viewer = userRepository.findByEmail(auth.getName()).orElse(null);
+            if (viewer != null && !postViewRepository.existsByPostIdAndUserId(post.getId(), viewer.getId())) {
+                postViewRepository.save(PostView.builder()
+                        .postId(post.getId())
+                        .userId(viewer.getId())
+                        .build());
+                post.setViewCount(post.getViewCount() + 1);
+                postRepository.save(post);
+            }
+        }
+
         return convertToResponse(post);
     }
 

@@ -41,6 +41,25 @@ public class CommentController {
                 .body(ApiResponse.success("Comment created successfully", comment));
     }
 
+    @PutMapping("/{commentId}")
+    public ResponseEntity<ApiResponse<CommentResponse>> updateComment(
+            @PathVariable @NonNull UUID postId,
+            @PathVariable @NonNull UUID commentId,
+            @Valid @RequestBody CommentRequest request) {
+        String userEmail = getCurrentUserEmail();
+        CommentResponse updated = commentService.updateComment(commentId, request, userEmail);
+        return ResponseEntity.ok(ApiResponse.success("Comment updated successfully", updated));
+    }
+
+    @DeleteMapping("/{commentId}")
+    public ResponseEntity<ApiResponse<Void>> deleteComment(
+            @PathVariable @NonNull UUID postId,
+            @PathVariable @NonNull UUID commentId) {
+        String userEmail = getCurrentUserEmail();
+        commentService.deleteComment(commentId, userEmail);
+        return ResponseEntity.ok(ApiResponse.success("Comment deleted successfully", null));
+    }
+
     private String getCurrentUserEmail() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         return authentication.getName();
