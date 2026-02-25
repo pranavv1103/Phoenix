@@ -7,7 +7,6 @@ import com.phoenix.entity.Post;
 import com.phoenix.entity.User;
 import com.phoenix.exception.PostNotFoundException;
 import com.phoenix.exception.UnauthorizedException;
-import com.phoenix.exception.UnauthorizedException;
 import com.phoenix.repository.CommentRepository;
 import com.phoenix.repository.PostRepository;
 import com.phoenix.repository.UserRepository;

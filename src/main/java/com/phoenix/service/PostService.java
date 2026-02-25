@@ -114,10 +114,11 @@ public class PostService {
         if (auth != null && auth.isAuthenticated() && !auth.getPrincipal().equals("anonymousUser")) {
             User viewer = userRepository.findByEmail(auth.getName()).orElse(null);
             if (viewer != null && !postViewRepository.existsByPostIdAndUserId(post.getId(), viewer.getId())) {
-                postViewRepository.save(PostView.builder()
+                PostView view = PostView.builder()
                         .postId(post.getId())
                         .userId(viewer.getId())
-                        .build());
+                        .build();
+                postViewRepository.save(Objects.requireNonNull(view));
                 post.setViewCount(post.getViewCount() + 1);
                 postRepository.save(post);
             }
