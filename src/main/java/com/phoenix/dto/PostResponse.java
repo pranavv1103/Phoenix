@@ -29,4 +29,6 @@ public class PostResponse {
     private int price;
     private boolean paidByCurrentUser;
     private boolean author;
+    private long viewCount;
+    private int readingTimeMinutes;
 }

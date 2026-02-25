@@ -20,6 +20,8 @@ export default function PostDetailPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState('');
   const [payLoading, setPayLoading] = useState(false);
+  const [showBackTop, setShowBackTop] = useState(false);
+  const [showShare, setShowShare] = useState(false);
 
   const fetchPost = useCallback(async () => {
     try {
@@ -31,6 +33,12 @@ export default function PostDetailPage() {
       setLoading(false);
     }
   }, [id]);
+
+  useEffect(() => {
+    const handleScroll = () => setShowBackTop(window.scrollY > 300);
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const handleLike = async () => {
     if (!isAuthenticated) {
@@ -202,6 +210,21 @@ export default function PostDetailPage() {
                   <span className="text-sm px-3 py-1 bg-gradient-to-r from-emerald-100 to-teal-100 dark:from-emerald-900 dark:to-teal-900 text-emerald-700 dark:text-emerald-300 font-bold rounded-full">Updated</span>
                 </>
               )}
+              <span className="text-gray-400 dark:text-slate-500">•</span>
+              <span className="inline-flex items-center gap-1 text-sm font-medium text-blue-600 dark:text-blue-400">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                {post.readingTimeMinutes || 1} min read
+              </span>
+              <span className="text-gray-400 dark:text-slate-500">•</span>
+              <span className="inline-flex items-center gap-1 text-sm font-medium text-gray-500 dark:text-slate-400">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
+                {post.viewCount || 0} views
+              </span>
             </div>
           </div>
           
@@ -290,6 +313,52 @@ export default function PostDetailPage() {
             {!isAuthenticated && (
               <span className="text-sm text-gray-500 dark:text-slate-400 italic">Sign in to like this post</span>
             )}
+            <div className="relative ml-auto">
+              <button
+                onClick={() => setShowShare(!showShare)}
+                className="flex items-center gap-2 px-6 py-3 rounded-xl font-semibold bg-white dark:bg-slate-800 border-2 border-gray-200 dark:border-slate-700 text-gray-600 dark:text-slate-400 hover:border-blue-400 hover:text-blue-500 dark:hover:border-blue-500 dark:hover:text-blue-400 transition-all duration-300 transform hover:scale-105 hover:shadow-lg"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                </svg>
+                <span>Share</span>
+              </button>
+              {showShare && (
+                <div className="absolute right-0 top-full mt-2 w-52 bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-gray-100 dark:border-slate-700 z-20 overflow-hidden">
+                  <button
+                    onClick={() => { navigator.clipboard.writeText(window.location.href); setShowShare(false); }}
+                    className="flex items-center gap-3 w-full px-4 py-3 text-sm font-semibold text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
+                  >
+                    <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                    Copy link
+                  </button>
+                  <a
+                    href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(window.location.href)}&text=${encodeURIComponent(post.title)}`}
+                    target="_blank" rel="noopener noreferrer"
+                    className="flex items-center gap-3 w-full px-4 py-3 text-sm font-semibold text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
+                    onClick={() => setShowShare(false)}
+                  >
+                    <svg className="w-5 h-5 text-sky-500" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.736-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                    </svg>
+                    Share on X
+                  </a>
+                  <a
+                    href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(window.location.href)}`}
+                    target="_blank" rel="noopener noreferrer"
+                    className="flex items-center gap-3 w-full px-4 py-3 text-sm font-semibold text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
+                    onClick={() => setShowShare(false)}
+                  >
+                    <svg className="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+                    </svg>
+                    Share on LinkedIn
+                  </a>
+                </div>
+              )}
+            </div>
           </div>
 
           {isAuthor && isAuthenticated && (
@@ -410,6 +479,18 @@ export default function PostDetailPage() {
           </div>
         </div>
       </div>
+
+      {showBackTop && (
+        <button
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          className="fixed bottom-8 right-8 z-50 p-4 bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white rounded-full shadow-2xl hover:shadow-violet-500/30 hover:scale-110 transition-all duration-300"
+          aria-label="Back to top"
+        >
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
+          </svg>
+        </button>
+      )}
 
       <ConfirmDeleteModal
         isOpen={isDeleteModalOpen}

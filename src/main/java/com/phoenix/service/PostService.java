@@ -101,10 +101,12 @@ public class PostService {
                 .build();
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public PostResponse getPostById(@NonNull UUID id) {
         Post post = postRepository.findById(Objects.requireNonNull(id))
                 .orElseThrow(() -> new PostNotFoundException("Post not found with id: " + id));
+        post.setViewCount(post.getViewCount() + 1);
+        postRepository.save(post);
         return convertToResponse(post);
     }
 
@@ -186,10 +188,16 @@ public class PostService {
         }
 
         // Gate premium content: show 100-word preview to non-paying / non-author users
-        String content = post.getContent();
+        String fullContent = post.getContent();
+        String content = fullContent;
         if (post.isPremium() && !isAuthor && !paidByCurrentUser) {
-            content = truncateToWords(content, 100);
+            content = truncateToWords(fullContent, 100);
         }
+
+        // Compute reading time from full content (avg 200 words/min)
+        int wordCount = fullContent == null || fullContent.isBlank() ? 0 :
+                fullContent.trim().split("\\s+").length;
+        int readingTimeMinutes = Math.max(1, (int) Math.ceil(wordCount / 200.0));
 
         return PostResponse.builder()
                 .id(post.getId())
@@ -206,6 +214,8 @@ public class PostService {
                 .price(post.getPrice())
                 .paidByCurrentUser(paidByCurrentUser)
                 .author(isAuthor)
+                .viewCount(post.getViewCount())
+                .readingTimeMinutes(readingTimeMinutes)
                 .build();
     }
 

@@ -47,6 +47,10 @@ public class Post {
     @Builder.Default
     private int price = 0;
 
+    @Column(nullable = false)
+    @Builder.Default
+    private long viewCount = 0;
+
     @CreatedDate
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
