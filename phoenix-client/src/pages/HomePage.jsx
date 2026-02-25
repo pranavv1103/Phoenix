@@ -219,13 +219,13 @@ export default function HomePage() {
               
               // Strip markdown symbols and show plain text preview
               const stripMarkdown = (text) => {
-                // Remove markdown formatting: **bold**, *italic*, __underline__, ~~strikethrough~~, `code`, [links](url), ![images](url), # headings, etc.
                 return text
-                  .replace(/!?\[([^\]]+)\]\([^)]+\)/g, '$1') // Remove links/images, keep text
-                  .replace(/#{1,6}\s/g, '') // Remove heading symbols
-                  .replace(/[*_~`]/g, '') // Remove bold, italic, strikethrough, code markers
-                  .replace(/^[>\-+*]\s/gm, '') // Remove blockquotes and list markers
-                  .replace(/\s+/g, ' ') // Normalize whitespace
+                  .replace(/!?\[([^\]]+)\]\([^)]+\)/g, '$1')
+                  .replace(/#{1,6}\s/g, '')
+                  .replace(/[*_~]/g, '')
+                  .replace(/`/g, '')
+                  .replace(/^[>\-+*]\s/gm, '')
+                  .replace(/\s+/g, ' ')
                   .trim();
               };
               const previewText = stripMarkdown(post.content).substring(0, 150) + (post.content.length > 150 ? '...' : '');
