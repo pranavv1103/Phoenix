@@ -29,6 +29,7 @@ public class BookmarkService {
      * Returns true if the post was bookmarked, false if the bookmark was removed.
      */
     @Transactional
+    @SuppressWarnings("null")
     public boolean toggleBookmark(UUID postId, String userEmail) {
         User user = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new PostNotFoundException("User not found"));

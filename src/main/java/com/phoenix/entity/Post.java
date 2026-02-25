@@ -50,7 +50,7 @@ public class Post {
     private List<Tag> tags = new ArrayList<>();
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "VARCHAR(255) DEFAULT 'PUBLISHED'")
     @Builder.Default
     private PostStatus status = PostStatus.PUBLISHED;
 

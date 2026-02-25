@@ -20,6 +20,7 @@ public class FollowService {
      * Toggle follow on a user. Returns true if now following, false if unfollowed.
      */
     @Transactional
+    @SuppressWarnings("null")
     public boolean toggleFollow(String targetUsername, String currentUserEmail) {
         User follower = userRepository.findByEmail(currentUserEmail)
                 .orElseThrow(() -> new PostNotFoundException("User not found"));
