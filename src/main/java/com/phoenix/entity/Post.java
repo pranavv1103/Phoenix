@@ -49,6 +49,11 @@ public class Post {
     @Builder.Default
     private List<Tag> tags = new ArrayList<>();
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    @Builder.Default
+    private PostStatus status = PostStatus.PUBLISHED;
+
     @Column(nullable = false)
     @Builder.Default
     private boolean isPremium = false;

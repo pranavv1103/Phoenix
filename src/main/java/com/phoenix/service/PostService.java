@@ -4,11 +4,13 @@ import com.phoenix.dto.PagedResponse;
 import com.phoenix.dto.PostRequest;
 import com.phoenix.dto.PostResponse;
 import com.phoenix.entity.Post;
+import com.phoenix.entity.PostStatus;
 import com.phoenix.entity.Tag;
 import com.phoenix.entity.User;
 import com.phoenix.entity.UserRole;
 import com.phoenix.exception.PostNotFoundException;
 import com.phoenix.exception.UnauthorizedException;
+import com.phoenix.repository.BookmarkRepository;
 import com.phoenix.repository.CommentRepository;
 import com.phoenix.repository.LikeRepository;
 import com.phoenix.repository.PaymentRepository;
@@ -42,6 +44,7 @@ public class PostService {
     private final PostRepository postRepository;
     private final UserRepository userRepository;
     private final LikeRepository likeRepository;
+    private final BookmarkRepository bookmarkRepository;
     private final CommentRepository commentRepository;
     private final PaymentRepository paymentRepository;
     private final PostViewRepository postViewRepository;
@@ -55,12 +58,12 @@ public class PostService {
             if (isMostLiked(sort)) {
                 postPage = postRepository.findByTagNameOrderByLikeCountDesc(t, PageRequest.of(page, size));
             } else {
-                postPage = postRepository.findByTags_Name(t, buildPageable(page, size, sort));
+                postPage = postRepository.findByStatusAndTags_Name(PostStatus.PUBLISHED, t, buildPageable(page, size, sort));
             }
         } else if (isMostLiked(sort)) {
             postPage = postRepository.findAllOrderByLikeCountDesc(PageRequest.of(page, size));
         } else {
-            postPage = postRepository.findAll(buildPageable(page, size, sort));
+            postPage = postRepository.findByStatus(PostStatus.PUBLISHED, buildPageable(page, size, sort));
         }
         return buildPagedResponse(postPage);
     }
@@ -80,13 +83,13 @@ public class PostService {
                 postPage = postRepository.findByTitleContainingIgnoreCaseAndTagNameOrderByLikeCountDesc(
                         query.trim(), t, PageRequest.of(page, size));
             } else {
-                postPage = postRepository.findByTitleContainingIgnoreCaseAndTags_Name(
-                        query.trim(), t, pageable);
+                postPage = postRepository.findByStatusAndTitleContainingIgnoreCaseAndTags_Name(
+                        PostStatus.PUBLISHED, query.trim(), t, pageable);
             }
         } else if (isMostLiked(sort)) {
             postPage = postRepository.findByTitleContainingIgnoreCaseOrderByLikeCountDesc(query.trim(), PageRequest.of(page, size));
         } else {
-            postPage = postRepository.findByTitleContainingIgnoreCase(query.trim(), pageable);
+            postPage = postRepository.findByStatusAndTitleContainingIgnoreCase(PostStatus.PUBLISHED, query.trim(), pageable);
         }
 
         return buildPagedResponse(postPage);
@@ -158,6 +161,7 @@ public class PostService {
                 .isPremium(request.isPremium())
                 .price(request.getPrice())
                 .author(author)
+                .status(request.isSaveAsDraft() ? PostStatus.DRAFT : PostStatus.PUBLISHED)
                 .build();
 
         if (request.getTags() != null && !request.getTags().isEmpty()) {
@@ -181,6 +185,7 @@ public class PostService {
         post.setContent(request.getContent());
         post.setPremium(request.isPremium());
         post.setPrice(request.getPrice());
+        post.setStatus(request.isSaveAsDraft() ? PostStatus.DRAFT : PostStatus.PUBLISHED);
 
         post.getTags().clear();
         if (request.getTags() != null && !request.getTags().isEmpty()) {
@@ -211,7 +216,31 @@ public class PostService {
         postRepository.delete(post);
     }
 
-    private PostResponse convertToResponse(Post post) {
+    @Transactional(readOnly = true)
+    public List<PostResponse> getMyDrafts(String userEmail) {
+        return postRepository.findByAuthorEmailAndStatus(userEmail, PostStatus.DRAFT)
+                .stream()
+                .map(this::convertToResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<PostResponse> getRelatedPosts(@NonNull UUID id) {
+        Post post = postRepository.findById(Objects.requireNonNull(id))
+                .orElseThrow(() -> new PostNotFoundException("Post not found with id: " + id));
+        List<String> tagNames = post.getTags().stream()
+                .map(com.phoenix.entity.Tag::getName)
+                .collect(Collectors.toList());
+        if (tagNames.isEmpty()) {
+            return List.of();
+        }
+        return postRepository.findRelatedPosts(tagNames, id, PageRequest.of(0, 3))
+                .stream()
+                .map(this::convertToResponse)
+                .collect(Collectors.toList());
+    }
+
+    PostResponse convertToResponse(Post post) {
         long likeCount = likeRepository.countByPostId(post.getId());
         boolean likedByCurrentUser = false;
         boolean paidByCurrentUser = false;
@@ -232,6 +261,9 @@ public class PostService {
                         .existsByPost_IdAndUser_IdAndStatus(post.getId(), userId, "COMPLETED");
             }
         }
+
+        boolean bookmarkedByCurrentUser = currentUser != null
+                && bookmarkRepository.existsByUserIdAndPostId(currentUser.getId(), post.getId());
 
         // Gate premium content: show 100-word preview to non-paying / non-author users
         String fullContent = post.getContent();
@@ -267,6 +299,8 @@ public class PostService {
                 .viewCount(post.getViewCount())
                 .readingTimeMinutes(readingTimeMinutes)
                 .tags(tagNames)
+                .status(post.getStatus() != null ? post.getStatus().name() : "PUBLISHED")
+                .bookmarkedByCurrentUser(bookmarkedByCurrentUser)
                 .build();
     }
 

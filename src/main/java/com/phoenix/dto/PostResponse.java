@@ -33,4 +33,6 @@ public class PostResponse {
     private long viewCount;
     private int readingTimeMinutes;
     private List<String> tags;
+    private String status;
+    private boolean bookmarkedByCurrentUser;
 }

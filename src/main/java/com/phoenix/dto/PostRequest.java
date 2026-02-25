@@ -26,4 +26,6 @@ public class PostRequest {
     private int price = 0;
 
     private List<String> tags = new ArrayList<>();
+
+    private boolean saveAsDraft = false;
 }

@@ -14,6 +14,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -38,6 +39,11 @@ public class PostController {
             posts = postService.getAllPosts(page, size, sort, tag);
         }
         return ResponseEntity.ok(ApiResponse.success("Posts retrieved successfully", posts));
+    }
+
+    @GetMapping("/my-drafts")
+    public ResponseEntity<ApiResponse<List<PostResponse>>> getMyDrafts() {
+        return ResponseEntity.ok(ApiResponse.success("Drafts retrieved", postService.getMyDrafts(getCurrentUserEmail())));
     }
 
     @GetMapping("/{id}")
@@ -69,6 +75,11 @@ public class PostController {
         String userEmail = getCurrentUserEmail();
         postService.deletePost(id, userEmail);
         return ResponseEntity.ok(ApiResponse.success("Post deleted successfully", null));
+    }
+
+    @GetMapping("/{id}/related")
+    public ResponseEntity<ApiResponse<List<PostResponse>>> getRelatedPosts(@PathVariable @NonNull UUID id) {
+        return ResponseEntity.ok(ApiResponse.success("Related posts retrieved", postService.getRelatedPosts(id)));
     }
 
     private String getCurrentUserEmail() {

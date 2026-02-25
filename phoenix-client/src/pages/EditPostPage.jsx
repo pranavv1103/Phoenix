@@ -18,6 +18,7 @@ export default function EditPostPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [post, setPost] = useState(null);
+  const [postStatus, setPostStatus] = useState('PUBLISHED');
 
   const addTag = (raw) => {
     const tag = raw.trim().toLowerCase().replace(/[^a-z0-9-]/g, '');
@@ -56,6 +57,7 @@ export default function EditPostPage() {
         setIsPremium(postData.isPremium || false);
         setPrice(postData.price ? (postData.price / 100).toString() : '');
         setTags(postData.tags || []);
+        setPostStatus(postData.status || 'PUBLISHED');
         // Load only the actual saved content, no template text
         setContent(postData.content || '');
       } catch {
@@ -68,24 +70,27 @@ export default function EditPostPage() {
     fetchPost();
   }, [id, user?.email, navigate]);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSave = async (saveAsDraft = false) => {
     if (!title.trim() || !content.trim()) {
       setError('Title and content are required');
       return;
     }
-
     try {
       setSubmitting(true);
       setError('');
       const priceInPaise = isPremium ? Math.round(parseFloat(price || '0') * 100) : 0;
-      await client.put(`/api/posts/${id}`, { title, content, isPremium, price: priceInPaise, tags });
+      await client.put(`/api/posts/${id}`, { title, content, isPremium, price: priceInPaise, tags, saveAsDraft });
       navigate(`/posts/${id}`);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to update post');
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    handleSave(false);
   };
 
   if (loading) {
@@ -124,7 +129,14 @@ export default function EditPostPage() {
         </button>
 
         <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl rounded-3xl shadow-2xl p-10 animate-fade-in border border-white/50 dark:border-slate-700/50">
-          <h1 className="text-4xl font-bold mb-8 text-gray-900 dark:text-slate-100">Edit Post</h1>
+          <div className="flex items-center gap-3 mb-8">
+            <h1 className="text-4xl font-bold text-gray-900 dark:text-slate-100">Edit Post</h1>
+            {postStatus === 'DRAFT' && (
+              <span className="px-3 py-1 bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 text-sm font-semibold rounded-full border border-amber-300 dark:border-amber-700">
+                Draft
+              </span>
+            )}
+          </div>
 
           {error && (
             <div className="bg-gradient-to-r from-red-50 to-rose-50 dark:from-red-900/20 dark:to-rose-900/20 border-l-4 border-rose-500 dark:border-rose-600 text-rose-700 dark:text-rose-400 p-4 rounded-xl mb-6 animate-shake shadow-sm">
@@ -246,9 +258,20 @@ export default function EditPostPage() {
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
-                    Save Changes
+                    {postStatus === 'DRAFT' ? 'Publish Now' : 'Save Changes'}
                   </>
                 )}
+              </button>
+              <button
+                type="button"
+                disabled={submitting}
+                onClick={() => handleSave(true)}
+                className="flex items-center justify-center gap-2 px-6 py-3 border-2 border-amber-400 dark:border-amber-600 text-amber-700 dark:text-amber-400 rounded-xl hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-all duration-300 font-semibold"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+                </svg>
+                Save Draft
               </button>
               <button
                 type="button"

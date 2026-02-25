@@ -33,8 +33,7 @@ export default function CreatePostPage() {
 
   const removeTag = (tag) => setTags(prev => prev.filter(t => t !== tag));
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSave = async (saveAsDraft = false) => {
     setError('');
     setLoading(true);
 
@@ -46,13 +45,18 @@ export default function CreatePostPage() {
 
     try {
       const priceInPaise = isPremium ? Math.round(parseFloat(price || '0') * 100) : 0;
-      const response = await client.post('/api/posts', { title, content, isPremium, price: priceInPaise, tags });
+      const response = await client.post('/api/posts', { title, content, isPremium, price: priceInPaise, tags, saveAsDraft });
       navigate(`/posts/${response.data.data.id}`);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to create post');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    handleSave(false);
   };
 
   return (
@@ -192,6 +196,17 @@ export default function CreatePostPage() {
                     Publish Post
                   </>
                 )}
+              </button>
+              <button
+                type="button"
+                disabled={loading}
+                onClick={() => handleSave(true)}
+                className="px-6 py-4 border-2 border-gray-400 dark:border-slate-500 text-gray-700 dark:text-slate-300 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-700 transition-all duration-300 font-semibold flex items-center gap-2"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+                </svg>
+                Save Draft
               </button>
               <button
                 type="button"

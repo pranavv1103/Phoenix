@@ -17,4 +17,7 @@ public class UserProfileResponse {
     private LocalDateTime joinedDate;
     private int totalPosts;
     private List<PostResponse> posts;
+    private long followersCount;
+    private long followingCount;
+    private boolean followedByCurrentUser;
 }

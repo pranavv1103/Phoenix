@@ -27,6 +27,8 @@ export default function PostDetailPage() {
   const [commentPage, setCommentPage] = useState(null);  // PagedResponse from backend
   const [commentPageNum, setCommentPageNum] = useState(0);
   const [commentsLoading, setCommentsLoading] = useState(false);
+  const [readingProgress, setReadingProgress] = useState(0);
+  const [relatedPosts, setRelatedPosts] = useState([]);
   const COMMENTS_PAGE_SIZE = 10;
 
   const fetchPost = useCallback(async () => {
@@ -41,7 +43,13 @@ export default function PostDetailPage() {
   }, [id]);
 
   useEffect(() => {
-    const handleScroll = () => setShowBackTop(window.scrollY > 300);
+    const handleScroll = () => {
+      setShowBackTop(window.scrollY > 300);
+      const el = document.documentElement;
+      const scrolled = el.scrollTop || document.body.scrollTop;
+      const total = el.scrollHeight - el.clientHeight;
+      setReadingProgress(total > 0 ? Math.min(100, (scrolled / total) * 100) : 0);
+    };
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
@@ -57,6 +65,20 @@ export default function PostDetailPage() {
       setPost(prev => ({ ...prev, likeCount, likedByCurrentUser }));
     } catch (err) {
       console.error('Failed to toggle like', err);
+    }
+  };
+
+  const handleBookmark = async () => {
+    if (!isAuthenticated) {
+      navigate('/login');
+      return;
+    }
+    try {
+      const response = await client.post(`/api/bookmarks/${id}`);
+      const saved = response.data.data;
+      setPost(prev => ({ ...prev, bookmarkedByCurrentUser: saved }));
+    } catch (err) {
+      console.error('Failed to toggle bookmark', err);
     }
   };
 
@@ -81,6 +103,14 @@ export default function PostDetailPage() {
     fetchPost();
     fetchComments(0);
   }, [fetchPost, fetchComments]);
+
+  // Fetch related posts once the post is loaded
+  useEffect(() => {
+    if (!id) return;
+    client.get(`/api/posts/${id}/related`).then(res => {
+      setRelatedPosts(res.data.data || []);
+    }).catch(() => {});
+  }, [id]);
 
   const handlePay = async () => {
     if (!isAuthenticated) {
@@ -214,7 +244,13 @@ export default function PostDetailPage() {
   const postContent = typeof post.content === 'string' ? post.content : String(post.content ?? '');
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 bg-gradient-to-br from-slate-50 via-blue-50 via-purple-50 to-pink-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-950 py-12 px-4">
+    <>
+      {/* Reading progress bar */}
+      <div
+        className="fixed top-0 left-0 z-50 h-1 bg-gradient-to-r from-cyan-500 via-violet-500 to-fuchsia-500 transition-all duration-100"
+        style={{ width: `${readingProgress}%` }}
+      />
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 bg-gradient-to-br from-slate-50 via-blue-50 via-purple-50 to-pink-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-950 py-12 px-4">
       <div className="max-w-4xl mx-auto">
         <button
           onClick={() => navigate('/')}
@@ -375,6 +411,20 @@ export default function PostDetailPage() {
             {!isAuthenticated && (
               <span className="text-sm text-gray-500 dark:text-slate-400 italic">Sign in to like this post</span>
             )}
+            <button
+              onClick={handleBookmark}
+              className={`flex items-center gap-2 px-5 py-3 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 hover:shadow-lg ${
+                post.bookmarkedByCurrentUser
+                  ? 'bg-gradient-to-r from-amber-400 to-orange-500 text-white shadow-md'
+                  : 'bg-white dark:bg-slate-800 border-2 border-gray-200 dark:border-slate-700 text-gray-600 dark:text-slate-400 hover:border-amber-400 hover:text-amber-500 dark:hover:border-amber-400 dark:hover:text-amber-400'
+              }`}
+              title={post.bookmarkedByCurrentUser ? 'Remove bookmark' : 'Bookmark'}
+            >
+              <svg className="w-5 h-5" fill={post.bookmarkedByCurrentUser ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+              </svg>
+              <span>{post.bookmarkedByCurrentUser ? 'Saved' : 'Save'}</span>
+            </button>
             <div className="relative ml-auto">
               <button
                 onClick={() => setShowShare(!showShare)}
@@ -449,6 +499,39 @@ export default function PostDetailPage() {
             </div>
           )}
         </div>
+
+        {/* Related Posts */}
+        {relatedPosts.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-slate-100 mb-4 flex items-center gap-2">
+              <span className="w-1.5 h-7 bg-gradient-to-b from-violet-500 to-fuchsia-500 rounded-full inline-block"></span>
+              Related Posts
+            </h2>
+            <div className="grid gap-4 md:grid-cols-3">
+              {relatedPosts.map(rp => (
+                <button
+                  key={rp.id}
+                  onClick={() => navigate(`/posts/${rp.id}`)}
+                  className="text-left bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl rounded-2xl p-5 shadow-lg hover:shadow-xl border border-white/50 dark:border-slate-700/50 transition-all duration-300 hover:-translate-y-1 group"
+                >
+                  <h3 className="font-bold text-gray-900 dark:text-slate-100 line-clamp-2 mb-2 group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors">
+                    {rp.title}
+                  </h3>
+                  <p className="text-sm text-gray-500 dark:text-slate-400">{rp.authorName} · {rp.readingTimeMinutes || 1} min read</p>
+                  {rp.tags && rp.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {rp.tags.slice(0, 3).map(tag => (
+                        <span key={tag} className="px-2 py-0.5 bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300 rounded-full text-xs font-semibold border border-violet-200 dark:border-violet-700">
+                          #{tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl rounded-3xl shadow-2xl p-10 animate-fade-in border border-white/50 dark:border-slate-700/50">
           <h2 className="text-4xl font-bold mb-6 text-gray-900 dark:text-slate-100 flex items-center gap-3">
@@ -690,5 +773,6 @@ export default function PostDetailPage() {
         errorMessage={deleteError}
       />
     </div>
+    </>
   );
 }
