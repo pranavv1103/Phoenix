@@ -50,8 +50,7 @@ public class PostService {
     @Transactional(readOnly = true)
     public PagedResponse<PostResponse> getAllPosts(int page, int size, String sort, String tag) {
         Page<Post> postPage;
-        boolean hasTag = tag != null && !tag.trim().isEmpty();
-        if (hasTag) {
+        if (tag != null && !tag.trim().isEmpty()) {
             String t = tag.trim().toLowerCase();
             if (isMostLiked(sort)) {
                 postPage = postRepository.findByTagNameOrderByLikeCountDesc(t, PageRequest.of(page, size));
@@ -72,11 +71,10 @@ public class PostService {
             return getAllPosts(page, size, sort, tag);
         }
 
-        boolean hasTag = tag != null && !tag.trim().isEmpty();
         Pageable pageable = buildPageable(page, size, sort);
         Page<Post> postPage;
 
-        if (hasTag) {
+        if (tag != null && !tag.trim().isEmpty()) {
             String t = tag.trim().toLowerCase();
             if (isMostLiked(sort)) {
                 postPage = postRepository.findByTitleContainingIgnoreCaseAndTagNameOrderByLikeCountDesc(
@@ -276,6 +274,7 @@ public class PostService {
      * Find or create Tag entities for the given list of tag name strings.
      * Names are lowercased, trimmed, deduplicated, and capped at 5.
      */
+    @SuppressWarnings("null")
     private List<Tag> resolveOrCreateTags(List<String> tagNames) {
         return tagNames.stream()
                 .filter(n -> n != null && !n.isBlank())
@@ -283,7 +282,8 @@ public class PostService {
                 .distinct()
                 .limit(5)
                 .map(name -> tagRepository.findByName(name)
-                        .orElseGet(() -> tagRepository.save(Tag.builder().name(name).build())))
+                        .orElseGet(() -> Objects.requireNonNull(
+                                tagRepository.save(Tag.builder().name(name).build()))))
                 .collect(Collectors.toList());
     }
 
