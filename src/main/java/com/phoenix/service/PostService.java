@@ -265,11 +265,11 @@ public class PostService {
         boolean bookmarkedByCurrentUser = currentUser != null
                 && bookmarkRepository.existsByUserIdAndPostId(currentUser.getId(), post.getId());
 
-        // Gate premium content: show 100-word preview to non-paying / non-author users
+        // Gate premium content: hide full content from non-paying / non-author users
         String fullContent = post.getContent();
         String content = fullContent;
         if (post.isPremium() && !isAuthor && !paidByCurrentUser) {
-            content = truncateToWords(fullContent, 100);
+            content = "";
         }
 
         // Compute reading time from full content (avg 200 words/min)

@@ -331,16 +331,8 @@ export default function PostDetailPage() {
           {/* Content — gated for premium posts */}
           {post.isPremium && !post.paidByCurrentUser && !isAuthor ? (
             <div className="mb-6">
-              <div data-color-mode="auto" className="mb-4">
-                <MarkdownPreview
-                  source={postContent}
-                  style={{ backgroundColor: 'transparent', padding: 0 }}
-                  className="!bg-transparent"
-                />
-              </div>
-              {/* Paywall banner */}
-              <div className="relative mt-4 rounded-2xl overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/70 to-white dark:via-slate-900/70 dark:to-slate-900 pointer-events-none" />
+              {/* Paywall banner — no content preview */}
+              <div className="relative rounded-2xl overflow-hidden">
                 <div className="relative z-10 flex flex-col items-center text-center px-8 py-10 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-slate-800 dark:to-slate-700 border-2 border-amber-300 dark:border-amber-600 rounded-2xl shadow-xl">
                   <div className="p-4 bg-gradient-to-br from-amber-400 to-orange-500 rounded-2xl shadow-lg mb-4">
                     <svg className="w-10 h-10 text-white" fill="currentColor" viewBox="0 0 20 20">
