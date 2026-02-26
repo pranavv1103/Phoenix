@@ -13,4 +13,7 @@ public interface PaymentRepository extends JpaRepository<Payment, UUID> {
     boolean existsByPost_IdAndUser_IdAndStatus(UUID postId, UUID userId, String status);
 
     Optional<Payment> findByRazorpayOrderId(String razorpayOrderId);
+
+    @org.springframework.transaction.annotation.Transactional
+    void deleteByPostId(UUID postId);
 }

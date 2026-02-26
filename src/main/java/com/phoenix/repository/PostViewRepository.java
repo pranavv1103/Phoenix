@@ -9,4 +9,7 @@ import java.util.UUID;
 @Repository
 public interface PostViewRepository extends JpaRepository<PostView, UUID> {
     boolean existsByPostIdAndUserId(UUID postId, UUID userId);
+
+    @org.springframework.transaction.annotation.Transactional
+    void deleteByPostId(UUID postId);
 }

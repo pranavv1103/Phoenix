@@ -211,6 +211,9 @@ public class PostService {
             throw new UnauthorizedException("You are not authorized to delete this post");
         }
 
+        bookmarkRepository.deleteByPostId(id);
+        paymentRepository.deleteByPostId(id);
+        postViewRepository.deleteByPostId(id);
         likeRepository.deleteByPostId(id);
         commentRepository.deleteByPostId(id);
         postRepository.delete(post);

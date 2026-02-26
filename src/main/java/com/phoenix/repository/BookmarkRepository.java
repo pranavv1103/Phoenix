@@ -14,5 +14,8 @@ public interface BookmarkRepository extends JpaRepository<Bookmark, UUID> {
     @Transactional
     void deleteByUserIdAndPostId(UUID userId, UUID postId);
 
+    @Transactional
+    void deleteByPostId(UUID postId);
+
     List<Bookmark> findByUserIdOrderByCreatedAtDesc(UUID userId);
 }

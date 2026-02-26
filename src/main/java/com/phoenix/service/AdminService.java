@@ -5,8 +5,12 @@ import com.phoenix.dto.UserResponse;
 import com.phoenix.entity.Post;
 import com.phoenix.entity.User;
 import com.phoenix.exception.PostNotFoundException;
+import com.phoenix.repository.BookmarkRepository;
+import com.phoenix.repository.CommentRepository;
 import com.phoenix.repository.LikeRepository;
+import com.phoenix.repository.PaymentRepository;
 import com.phoenix.repository.PostRepository;
+import com.phoenix.repository.PostViewRepository;
 import com.phoenix.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.lang.NonNull;
@@ -25,6 +29,10 @@ public class AdminService {
     private final PostRepository postRepository;
     private final UserRepository userRepository;
     private final LikeRepository likeRepository;
+    private final CommentRepository commentRepository;
+    private final BookmarkRepository bookmarkRepository;
+    private final PaymentRepository paymentRepository;
+    private final PostViewRepository postViewRepository;
 
     @Transactional(readOnly = true)
     public List<PostResponse> getAllPostsForAdmin() {
@@ -47,6 +55,10 @@ public class AdminService {
         Post post = postRepository.findById(Objects.requireNonNull(postId))
                 .orElseThrow(() -> new PostNotFoundException("Post not found with id: " + postId));
         likeRepository.deleteByPostId(postId);
+        commentRepository.deleteByPostId(postId);
+        bookmarkRepository.deleteByPostId(postId);
+        paymentRepository.deleteByPostId(postId);
+        postViewRepository.deleteByPostId(postId);
         postRepository.delete(Objects.requireNonNull(post));
     }
 
