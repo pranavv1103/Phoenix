@@ -320,12 +320,4 @@ public class PostService {
                                 tagRepository.save(Tag.builder().name(name).build()))))
                 .collect(Collectors.toList());
     }
-
-    /** Truncate {@code text} to at most {@code maxWords} words, appending "..." if truncated. */
-    private String truncateToWords(String text, int maxWords) {
-        if (text == null || text.isBlank()) return text;
-        String[] words = text.trim().split("\\s+");
-        if (words.length <= maxWords) return text;
-        return String.join(" ", java.util.Arrays.copyOfRange(words, 0, maxWords)) + "...";
-    }
 }
