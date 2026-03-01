@@ -54,11 +54,16 @@ export default function EditPostPage() {
     setAutoSaveStatus('saving');
     const data = { title, content, isPremium, price, tags, timestamp: Date.now() };
     localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(data));
-    setLastSaved(new Date());
-    setAutoSaveStatus('saved');
-    hasUnsavedChanges.current = false;
     
-    setTimeout(() => setAutoSaveStatus(''), 2000);
+    // Delay to show 'saving' animation before showing 'saved'
+    setTimeout(() => {
+      setLastSaved(new Date());
+      setAutoSaveStatus('saved');
+      hasUnsavedChanges.current = false;
+      
+      // Clear status after 2 seconds
+      setTimeout(() => setAutoSaveStatus(''), 2000);
+    }, 300);
   }, [id, title, content, isPremium, price, tags]);
 
   // Setup auto-save interval
