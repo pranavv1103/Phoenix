@@ -231,7 +231,7 @@ export default function CreatePostPage() {
               />
             </div>
 
-            {/* Cover Image */}
+            {/* Cover Image Upload Section */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">
                 Cover Image
