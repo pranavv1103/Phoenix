@@ -39,8 +39,8 @@ public class CommentService {
             throw new PostNotFoundException("Post not found with id: " + postId);
         }
 
-        PageRequest pageable = PageRequest.of(page, size, Sort.by("createdAt").ascending());
-        Page<Comment> commentPage = commentRepository.findByPostIdAndParentIsNullOrderByCreatedAtAsc(postId, pageable);
+        PageRequest pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        Page<Comment> commentPage = commentRepository.findByPostIdAndParentIsNullOrderByCreatedAtDesc(postId, pageable);
 
         List<CommentResponse> content = commentPage.getContent().stream()
                 .map(this::convertToResponse)
@@ -71,7 +71,7 @@ public class CommentService {
                 .author(author);
 
         if (request.getParentId() != null) {
-            Comment parent = commentRepository.findById(request.getParentId())
+            Comment parent = commentRepository.findById(Objects.requireNonNull(request.getParentId()))
                     .orElseThrow(() -> new RuntimeException("Parent comment not found"));
             builder.parent(parent);
         }

@@ -153,9 +153,7 @@ export default function PostDetailPage() {
     try {
       await client.post(`/api/posts/${id}/comments`, { content: newComment });
       setNewComment('');
-      const newTotal = (commentPage?.totalElements ?? 0) + 1;
-      const newLastPage = Math.max(0, Math.ceil(newTotal / COMMENTS_PAGE_SIZE) - 1);
-      fetchComments(newLastPage);
+      fetchComments(0);
     } catch { alert('Failed to post comment'); }
   };
 
@@ -190,7 +188,7 @@ export default function PostDetailPage() {
       await client.post(`/api/posts/${id}/comments`, { content: replyText, parentId });
       setReplyText('');
       setReplyingToId(null);
-      fetchComments(commentPageNum);
+      fetchComments(0);
     } catch { alert('Failed to post reply'); }
   };
 
