@@ -12,194 +12,143 @@ export default function AdminPage() {
   const { user } = useAuthStore();
 
   useEffect(() => {
-    if (activeTab === 'posts') {
-      fetchPosts();
-    } else {
-      fetchUsers();
-    }
+    if (activeTab === 'posts') fetchPosts();
+    else fetchUsers();
   }, [activeTab]);
 
   const fetchPosts = async () => {
-    try {
-      setLoading(true);
-      const response = await client.get('/api/admin/posts');
-      setPosts(response.data.data);
-      setError('');
-    } catch {
-      setError('Failed to load posts');
-    } finally {
-      setLoading(false);
-    }
+    try { setLoading(true); const r = await client.get('/api/admin/posts'); setPosts(r.data.data); setError(''); }
+    catch { setError('Failed to load posts'); }
+    finally { setLoading(false); }
   };
 
   const fetchUsers = async () => {
-    try {
-      setLoading(true);
-      const response = await client.get('/api/admin/users');
-      setUsers(response.data.data);
-      setError('');
-    } catch {
-      setError('Failed to load users');
-    } finally {
-      setLoading(false);
-    }
+    try { setLoading(true); const r = await client.get('/api/admin/users'); setUsers(r.data.data); setError(''); }
+    catch { setError('Failed to load users'); }
+    finally { setLoading(false); }
   };
 
   const handleDeletePost = async (postId, postTitle) => {
-    if (!window.confirm(`Are you sure you want to delete the post "${postTitle}"?`)) {
-      return;
-    }
-
-    try {
-      await client.delete(`/api/admin/posts/${postId}`);
-      setPosts(posts.filter(post => post.id !== postId));
-    } catch {
-      alert('Failed to delete post');
-    }
+    if (!window.confirm(`Delete "${postTitle}"?`)) return;
+    try { await client.delete(`/api/admin/posts/${postId}`); setPosts(posts.filter(p => p.id !== postId)); }
+    catch { alert('Failed to delete post'); }
   };
 
-  // Check if user is admin
   if (!user || user.role !== 'ADMIN') {
     return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 bg-gradient-to-br from-red-50 to-pink-50 dark:from-slate-900 dark:to-slate-950 flex items-center justify-center">
-      <div className="text-center bg-white dark:bg-slate-800 p-12 rounded-3xl shadow-2xl">
-        <div className="text-8xl mb-6">🚫</div>
-        <h1 className="text-4xl font-bold text-red-600 dark:text-red-400 mb-4">Access Denied</h1>
-        <p className="text-gray-600 dark:text-slate-300 text-lg">You do not have permission to access this page.</p>
+      <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-slate-950">
+        <div className="text-center p-8 bg-white dark:bg-slate-900 rounded-2xl border border-gray-200 dark:border-slate-800">
+          <p className="text-xl font-semibold text-red-600 dark:text-red-400 mb-2">Access Denied</p>
+          <p className="text-sm text-gray-500 dark:text-slate-400">You don't have permission to view this page.</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 bg-gradient-to-br from-slate-50 via-purple-50 to-pink-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-950">
-      <div className="container mx-auto px-6 py-12">
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-950">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10">
+
         <div className="mb-8">
-          <h1 className="text-5xl font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-red-600 bg-clip-text text-transparent mb-3">
-            Admin Dashboard
-          </h1>
-          <p className="text-gray-600 dark:text-slate-300 text-lg">Manage posts and users</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Admin Dashboard</h1>
+          <p className="mt-1 text-sm text-gray-500 dark:text-slate-400">Manage all posts and users</p>
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-4 mb-8">
-          <button
-            onClick={() => setActiveTab('posts')}
-            className={`px-8 py-3 rounded-xl font-semibold transition-all duration-300 ${
-              activeTab === 'posts'
-                ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg'
-                : 'bg-white dark:bg-slate-800 text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700'
-            }`}
-          >
-            Posts
-          </button>
-          <button
-            onClick={() => setActiveTab('users')}
-            className={`px-8 py-3 rounded-xl font-semibold transition-all duration-300 ${
-              activeTab === 'users'
-                ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg'
-                : 'bg-white dark:bg-slate-800 text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700'
-            }`}
-          >
-            Users
-          </button>
+        <div className="flex gap-0 border-b border-gray-200 dark:border-slate-800 mb-6">
+          {['posts', 'users'].map(tab => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`px-4 py-2.5 text-sm font-medium capitalize border-b-2 transition-colors ${
+                activeTab === tab
+                  ? 'border-gray-900 dark:border-white text-gray-900 dark:text-white'
+                  : 'border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300'
+              }`}
+            >
+              {tab.charAt(0).toUpperCase() + tab.slice(1)}
+              {tab === 'posts' && posts.length > 0 && <span className="ml-1.5 text-xs text-gray-400 dark:text-slate-500">({posts.length})</span>}
+              {tab === 'users' && users.length > 0 && <span className="ml-1.5 text-xs text-gray-400 dark:text-slate-500">({users.length})</span>}
+            </button>
+          ))}
         </div>
 
-        {/* Content */}
         {loading ? (
-          <div className="flex justify-center py-20">
-            <div className="inline-block animate-spin rounded-full h-16 w-16 border-b-4 border-purple-600"></div>
+          <div className="flex flex-col items-center justify-center py-24 gap-3">
+            <div className="w-7 h-7 border-2 border-gray-200 dark:border-slate-700 border-t-green-600 rounded-full animate-spin"></div>
+            <p className="text-sm text-gray-500 dark:text-slate-400">Loading...</p>
           </div>
         ) : error ? (
-          <div className="text-center py-20 bg-white rounded-2xl shadow-xl">
-            <div className="text-6xl mb-4">😕</div>
-            <div className="text-xl text-red-600 font-semibold">{error}</div>
+          <div className="text-center py-20">
+            <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
           </div>
         ) : activeTab === 'posts' ? (
-          <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
-            <table className="w-full">
-              <thead className="bg-gradient-to-r from-purple-600 to-pink-600 text-white">
-                <tr>
-                  <th className="px-6 py-4 text-left font-semibold">Title</th>
-                  <th className="px-6 py-4 text-left font-semibold">Author</th>
-                  <th className="px-6 py-4 text-left font-semibold">Date</th>
-                  <th className="px-6 py-4 text-center font-semibold">Actions</th>
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-200 dark:border-slate-800 overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-100 dark:border-slate-800">
+                  <th className="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wide">Title</th>
+                  <th className="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wide">Author</th>
+                  <th className="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wide hidden sm:table-cell">Date</th>
+                  <th className="px-5 py-3.5 text-right text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wide">Action</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
+              <tbody className="divide-y divide-gray-50 dark:divide-slate-800/60">
                 {posts.length === 0 ? (
-                  <tr>
-                    <td colSpan="4" className="px-6 py-12 text-center text-gray-500">
-                      No posts found
+                  <tr><td colSpan="4" className="px-5 py-12 text-center text-gray-400 dark:text-slate-500">No posts found</td></tr>
+                ) : posts.map((post) => (
+                  <tr key={post.id} className="hover:bg-gray-50/50 dark:hover:bg-slate-800/30 transition-colors">
+                    <td className="px-5 py-3.5">
+                      <span className="font-medium text-gray-900 dark:text-slate-100 line-clamp-1">{post.title}</span>
+                    </td>
+                    <td className="px-5 py-3.5">
+                      <span className="text-gray-700 dark:text-slate-300">{post.authorName}</span>
+                      <span className="block text-xs text-gray-400 dark:text-slate-500">{post.authorEmail}</span>
+                    </td>
+                    <td className="px-5 py-3.5 text-gray-500 dark:text-slate-400 hidden sm:table-cell">{formatRelativeTime(post.createdAt)}</td>
+                    <td className="px-5 py-3.5 text-right">
+                      <button
+                        onClick={() => handleDeletePost(post.id, post.title)}
+                        className="px-3 py-1.5 text-xs font-semibold text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800/50 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                      >
+                        Delete
+                      </button>
                     </td>
                   </tr>
-                ) : (
-                  posts.map((post) => (
-                    <tr key={post.id} className="hover:bg-purple-50 transition-colors">
-                      <td className="px-6 py-4">
-                        <div className="font-medium text-gray-900">{post.title}</div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="text-gray-700">{post.authorName}</div>
-                        <div className="text-sm text-gray-500">{post.authorEmail}</div>
-                      </td>
-                      <td className="px-6 py-4 text-gray-600">
-                        {formatRelativeTime(post.createdAt)}
-                      </td>
-                      <td className="px-6 py-4 text-center">
-                        <button
-                          onClick={() => handleDeletePost(post.id, post.title)}
-                          className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-semibold"
-                        >
-                          Delete
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                )}
+                ))}
               </tbody>
             </table>
           </div>
         ) : (
-          <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
-            <table className="w-full">
-              <thead className="bg-gradient-to-r from-purple-600 to-pink-600 text-white">
-                <tr>
-                  <th className="px-6 py-4 text-left font-semibold">Username</th>
-                  <th className="px-6 py-4 text-left font-semibold">Email</th>
-                  <th className="px-6 py-4 text-left font-semibold">Role</th>
-                  <th className="px-6 py-4 text-left font-semibold">Joined Date</th>
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-200 dark:border-slate-800 overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-100 dark:border-slate-800">
+                  <th className="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wide">Name</th>
+                  <th className="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wide hidden sm:table-cell">Email</th>
+                  <th className="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wide">Role</th>
+                  <th className="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wide hidden md:table-cell">Joined</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
+              <tbody className="divide-y divide-gray-50 dark:divide-slate-800/60">
                 {users.length === 0 ? (
-                  <tr>
-                    <td colSpan="4" className="px-6 py-12 text-center text-gray-500">
-                      No users found
+                  <tr><td colSpan="4" className="px-5 py-12 text-center text-gray-400 dark:text-slate-500">No users found</td></tr>
+                ) : users.map((u) => (
+                  <tr key={u.id} className="hover:bg-gray-50/50 dark:hover:bg-slate-800/30 transition-colors">
+                    <td className="px-5 py-3.5 font-medium text-gray-900 dark:text-slate-100">{u.name}</td>
+                    <td className="px-5 py-3.5 text-gray-600 dark:text-slate-400 hidden sm:table-cell">{u.email}</td>
+                    <td className="px-5 py-3.5">
+                      <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                        u.role === 'ADMIN'
+                          ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800/50'
+                          : 'bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-slate-400 border border-gray-200 dark:border-slate-700'
+                      }`}>
+                        {u.role}
+                      </span>
                     </td>
+                    <td className="px-5 py-3.5 text-gray-500 dark:text-slate-400 hidden md:table-cell">{formatRelativeTime(u.createdAt)}</td>
                   </tr>
-                ) : (
-                  users.map((user) => (
-                    <tr key={user.id} className="hover:bg-purple-50 transition-colors">
-                      <td className="px-6 py-4 font-medium text-gray-900">{user.name}</td>
-                      <td className="px-6 py-4 text-gray-700">{user.email}</td>
-                      <td className="px-6 py-4">
-                        <span
-                          className={`px-3 py-1 rounded-full text-sm font-semibold ${
-                            user.role === 'ADMIN'
-                              ? 'bg-purple-100 text-purple-700'
-                              : 'bg-gray-100 text-gray-700'
-                          }`}
-                        >
-                          {user.role}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-gray-600">
-                        {formatRelativeTime(user.createdAt)}
-                      </td>
-                    </tr>
-                  ))
-                )}
+                ))}
               </tbody>
             </table>
           </div>

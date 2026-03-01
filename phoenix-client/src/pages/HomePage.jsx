@@ -15,6 +15,13 @@ const stripMarkdown = (text) => {
     .trim();
 };
 
+const colorFromString = (str) => {
+  const colors = ['bg-rose-500','bg-orange-500','bg-amber-500','bg-green-600','bg-teal-600','bg-cyan-600','bg-blue-600','bg-indigo-600','bg-violet-600','bg-purple-600'];
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  return colors[Math.abs(hash) % colors.length];
+};
+
 export default function HomePage() {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -34,7 +41,6 @@ export default function HomePage() {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuthStore();
 
-  // Fetch available tags on mount
   useEffect(() => {
     client.get('/api/tags').then(res => {
       setAvailableTags(res.data.data || []);
@@ -44,391 +50,286 @@ export default function HomePage() {
   const handleLike = async (e, postId) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!isAuthenticated) {
-      navigate('/login');
-      return;
-    }
+    if (!isAuthenticated) { navigate('/login'); return; }
     try {
       const response = await client.post(`/api/posts/${postId}/like`);
       const { likeCount, likedByCurrentUser } = response.data.data;
-      setPosts(prev => prev.map(p =>
-        p.id === postId ? { ...p, likeCount, likedByCurrentUser } : p
-      ));
-    } catch (err) {
-      console.error('Failed to toggle like', err);
-    }
+      setPosts(prev => prev.map(p => p.id === postId ? { ...p, likeCount, likedByCurrentUser } : p));
+    } catch (err) { console.error('Failed to toggle like', err); }
   };
 
-  // Debounce search query - wait 500ms after user stops typing
   useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      setDebouncedSearchQuery(searchQuery);
-      setCurrentPage(0); // Reset to first page when search changes
-    }, 500);
-
-    // Clear timeout if user types again before 500ms
+    const timeoutId = setTimeout(() => { setDebouncedSearchQuery(searchQuery); setCurrentPage(0); }, 500);
     return () => clearTimeout(timeoutId);
   }, [searchQuery]);
 
-  // Reset page when tag filter changes
-  useEffect(() => {
-    setCurrentPage(0);
-  }, [selectedTag]);
+  useEffect(() => { setCurrentPage(0); }, [selectedTag]);
 
-  // Fetch posts only when debounced query or page changes
-  useEffect(() => {
-    fetchPosts();
-  }, [debouncedSearchQuery, currentPage, sortOption, selectedTag]);
+  useEffect(() => { fetchPosts(); }, [debouncedSearchQuery, currentPage, sortOption, selectedTag]);
 
   const fetchPosts = async () => {
     try {
       setLoading(true);
-      let url = `/api/posts?page=${currentPage}&size=${pageSize}`;
-      url += `&sort=${encodeURIComponent(sortOption)}`;
-      if (debouncedSearchQuery.trim()) {
-        url += `&search=${encodeURIComponent(debouncedSearchQuery.trim())}`;
-      }
-      if (selectedTag) {
-        url += `&tag=${encodeURIComponent(selectedTag)}`;
-      }
+      let url = `/api/posts?page=${currentPage}&size=${pageSize}&sort=${encodeURIComponent(sortOption)}`;
+      if (debouncedSearchQuery.trim()) url += `&search=${encodeURIComponent(debouncedSearchQuery.trim())}`;
+      if (selectedTag) url += `&tag=${encodeURIComponent(selectedTag)}`;
       const response = await client.get(url);
       const pageData = response.data.data;
-      
       setPosts(pageData.content);
       setTotalPages(pageData.totalPages);
       setTotalElements(pageData.totalElements);
       setIsFirst(pageData.first);
       setIsLast(pageData.last);
       setError('');
-    } catch {
-      setError('Failed to load posts');
-    } finally {
-      setLoading(false);
-    }
+    } catch { setError('Failed to load posts'); }
+    finally { setLoading(false); }
   };
 
-  const handleNextPage = () => {
-    if (!isLast) {
-      setCurrentPage(prev => prev + 1);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-  };
-
-  const handlePreviousPage = () => {
-    if (!isFirst) {
-      setCurrentPage(prev => prev - 1);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-  };
-
-  const handleSortChange = (e) => {
-    setSortOption(e.target.value);
-    setCurrentPage(0);
-  };
-
-  const handleTagClick = (tag) => {
-    setSelectedTag(prev => prev === tag ? '' : tag);
-  };
+  const handleNextPage = () => { if (!isLast) { setCurrentPage(p => p + 1); window.scrollTo({ top: 0, behavior: 'smooth' }); } };
+  const handlePreviousPage = () => { if (!isFirst) { setCurrentPage(p => p - 1); window.scrollTo({ top: 0, behavior: 'smooth' }); } };
+  const handleSortChange = (e) => { setSortOption(e.target.value); setCurrentPage(0); };
+  const handleTagClick = (tag) => setSelectedTag(prev => prev === tag ? '' : tag);
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 bg-gradient-to-br from-slate-50 via-blue-50 via-violet-50 to-fuchsia-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-950">
-      <div className="max-w-[1500px] mx-auto px-6 md:px-8 py-12">
-        <div className="text-center mb-12 animate-fade-in">
-          <div className="inline-block mb-6">
-            <h1 className="text-6xl font-bold bg-gradient-to-r from-cyan-600 via-blue-600 via-violet-600 to-fuchsia-600 bg-clip-text text-transparent mb-4 drop-shadow-sm">
-              Discover Inspiring Stories
-            </h1>
-            <div className="h-1.5 bg-gradient-to-r from-cyan-500 via-blue-500 via-violet-500 to-fuchsia-500 rounded-full"></div>
-          </div>
-          <p className="text-gray-700 text-xl font-medium dark:text-slate-300">Explore thoughtful articles from our vibrant community</p>
-        </div>
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-950">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-10">
 
-        <div className="max-w-4xl mx-auto mb-10">
-          <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center">
-            <div className="relative flex-1">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <svg className="h-6 w-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-              </div>
-              <input
-                ref={searchRef}
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search posts by title..."
-                className="w-full pl-12 pr-12 py-4 text-lg border-2 border-gray-200 rounded-2xl focus:outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-200 transition-all duration-300 bg-white shadow-md hover:shadow-lg dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100 dark:placeholder-slate-400 dark:focus:ring-violet-900/40"
-              />
-              {searchQuery && (
-                <button
-                  onClick={() => setSearchQuery('')}
-                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600 transition-colors dark:text-slate-400 dark:hover:text-slate-200"
-                  aria-label="Clear search"
-                >
-                  <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              )}
-            </div>
-            <div className="relative">
-              <select
-                value={sortOption}
-                onChange={handleSortChange}
-                className="w-full md:w-56 px-4 py-4 border-2 border-gray-200 rounded-2xl bg-white text-gray-700 font-semibold shadow-md hover:shadow-lg focus:outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-200 transition-all duration-300 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100 dark:focus:ring-violet-900/40"
-                aria-label="Sort posts"
-              >
-                <option value="newest">Newest first</option>
-                <option value="oldest">Oldest first</option>
-                <option value="mostLiked">Most liked</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Tag filter pills */}
-          {availableTags.length > 0 && (
-            <div className="flex flex-wrap gap-2 mt-4 justify-center">
-              {availableTags.map(tag => (
-                <button
-                  key={tag}
-                  onClick={() => handleTagClick(tag)}
-                  className={`px-4 py-1.5 rounded-full text-sm font-semibold border-2 transition-all duration-200 hover:scale-105 ${
-                    selectedTag === tag
-                      ? 'bg-violet-600 border-violet-600 text-white shadow-md'
-                      : 'bg-white dark:bg-slate-800 border-violet-300 dark:border-violet-700 text-violet-700 dark:text-violet-300 hover:border-violet-500'
-                  }`}
-                >
-                  #{tag}
-                </button>
-              ))}
-              {selectedTag && (
-                <button
-                  onClick={() => setSelectedTag('')}
-                  className="px-4 py-1.5 rounded-full text-sm font-semibold border-2 border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 bg-white dark:bg-slate-800 hover:border-red-400 hover:text-red-500 transition-all duration-200"
-                >
-                  ✕ Clear filter
-                </button>
-              )}
-            </div>
+        <div className="mb-8">
+          <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white tracking-tight">
+            {selectedTag ? (
+              <span>Stories tagged <span className="text-green-600 dark:text-green-400">#{selectedTag}</span></span>
+            ) : searchQuery ? (
+              <span>Search results</span>
+            ) : (
+              'Featured Stories'
+            )}
+          </h1>
+          {!selectedTag && !searchQuery && (
+            <p className="mt-1.5 text-gray-500 dark:text-slate-400">Thoughtful articles from our community</p>
           )}
         </div>
 
-        {selectedTag && (
-          <div className="max-w-4xl mx-auto mb-4 flex items-center gap-2 text-sm">
-            <span className="text-gray-500 dark:text-slate-400">Filtering by:</span>
-            <span className="inline-flex items-center gap-1 px-3 py-1 bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300 rounded-full font-semibold border border-violet-300 dark:border-violet-700">
-              #{selectedTag}
-            </span>
+        <div className="flex flex-col sm:flex-row gap-3 mb-6">
+          <div className="relative flex-1">
+            <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-slate-500 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <input
+              ref={searchRef}
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search stories..."
+              className="w-full pl-10 pr-10 py-2.5 text-sm bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-full focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500 transition-colors"
+            />
+            {searchQuery && (
+              <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:text-slate-500 dark:hover:text-slate-300">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            )}
+          </div>
+          <select
+            value={sortOption}
+            onChange={handleSortChange}
+            className="sm:w-44 px-4 py-2.5 text-sm bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-full text-gray-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500 transition-colors"
+          >
+            <option value="newest">Newest first</option>
+            <option value="oldest">Oldest first</option>
+            <option value="mostLiked">Most liked</option>
+          </select>
+        </div>
+
+        {availableTags.length > 0 && (
+          <div className="flex flex-wrap gap-2 mb-6">
+            {availableTags.map(tag => (
+              <button
+                key={tag}
+                onClick={() => handleTagClick(tag)}
+                className={`px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${
+                  selectedTag === tag
+                    ? 'bg-gray-900 dark:bg-white border-gray-900 dark:border-white text-white dark:text-gray-900'
+                    : 'bg-white dark:bg-slate-900 border-gray-200 dark:border-slate-700 text-gray-600 dark:text-slate-400 hover:border-gray-400 dark:hover:border-slate-500 hover:text-gray-900 dark:hover:text-slate-200'
+                }`}
+              >
+                #{tag}
+              </button>
+            ))}
+            {selectedTag && (
+              <button
+                onClick={() => setSelectedTag('')}
+                className="px-3 py-1 rounded-full text-xs font-semibold border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-gray-500 dark:text-slate-400 hover:border-red-300 hover:text-red-500 transition-colors"
+              >
+                Clear filter
+              </button>
+            )}
           </div>
         )}
 
         {loading ? (
-          <div className="flex justify-center items-center py-20">
-            <div className="text-center">
-              <div className="inline-block animate-spin rounded-full h-16 w-16 border-b-4 border-purple-600 mb-4"></div>
-              <p className="text-xl text-gray-700 font-medium dark:text-slate-300">Loading amazing content...</p>
-            </div>
+          <div className="flex flex-col items-center justify-center py-24 gap-4">
+            <div className="w-8 h-8 border-2 border-gray-200 dark:border-slate-700 border-t-green-600 rounded-full animate-spin"></div>
+            <p className="text-sm text-gray-500 dark:text-slate-400">Loading stories</p>
           </div>
         ) : error ? (
-          <div className="flex justify-center items-center py-20">
-            <div className="text-center bg-white p-8 rounded-2xl shadow-xl dark:bg-slate-900 dark:shadow-black/40">
-              <div className="text-6xl mb-4">😕</div>
-              <div className="text-xl text-red-600 font-semibold dark:text-red-400">{error}</div>
+          <div className="flex flex-col items-center justify-center py-24 gap-3">
+            <div className="w-12 h-12 bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center">
+              <svg className="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
             </div>
+            <p className="text-sm text-gray-600 dark:text-slate-400">{error}</p>
+            <button onClick={fetchPosts} className="text-sm text-green-600 dark:text-green-400 hover:underline font-medium">Try again</button>
           </div>
         ) : posts.length === 0 ? (
-          <div className="text-center py-20 animate-fade-in">
-            <div className="inline-block p-8 bg-gradient-to-br from-blue-100 to-violet-100 rounded-3xl shadow-xl mb-6 dark:from-slate-800 dark:to-slate-900">
-              <div className="text-8xl mb-4">{searchQuery ? '🔍' : '📝'}</div>
+          <div className="flex flex-col items-center justify-center py-24 gap-4 text-center">
+            <div className="w-14 h-14 bg-gray-100 dark:bg-slate-800 rounded-full flex items-center justify-center">
+              <svg className="w-7 h-7 text-gray-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+              </svg>
             </div>
-            <p className="text-3xl font-bold text-gray-800 mb-3 dark:text-slate-100">
-              {searchQuery ? 'No posts found' : 'No posts yet'}
-            </p>
-            <p className="text-gray-600 text-lg mb-6 dark:text-slate-400">
-              {searchQuery 
-                ? `No results for "${searchQuery}". Try a different search term.`
-                : 'Be the first to share your story!'
-              }
-            </p>
+            <div>
+              <p className="text-lg font-semibold text-gray-800 dark:text-slate-100">{searchQuery ? 'No results found' : 'No stories yet'}</p>
+              <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">
+                {searchQuery ? 'Try a different search term.' : 'Be the first to share your story.'}
+              </p>
+            </div>
             {!searchQuery && (
-              <Link 
-                to="/create" 
-                className="inline-flex items-center gap-2 px-10 py-4 bg-gradient-to-r from-cyan-600 via-blue-600 to-violet-600 text-white rounded-2xl hover:scale-105 transform transition-all duration-300 shadow-xl hover:shadow-2xl font-bold text-lg"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-                Create First Post
+              <Link to="/create" className="mt-2 px-5 py-2.5 text-sm font-semibold text-white bg-gray-900 dark:bg-white dark:text-gray-900 rounded-full hover:bg-gray-700 dark:hover:bg-gray-200 transition-colors">
+                Write a story
               </Link>
             )}
           </div>
         ) : (
-          <div className="grid gap-10 md:grid-cols-2 xl:grid-cols-3">
-            {posts.map((post, index) => {
-              const gradients = [
-                'from-cyan-500 via-blue-500 to-violet-500',
-                'from-emerald-500 via-teal-500 to-cyan-500',
-                'from-violet-500 via-purple-500 to-fuchsia-500',
-                'from-orange-500 via-rose-500 to-pink-500',
-                'from-blue-500 via-indigo-500 to-purple-500',
-                'from-teal-500 via-emerald-500 to-green-500',
-              ];
-              const gradient = gradients[index % gradients.length];
-              
-              const bgGradients = [
-                'from-cyan-50 to-blue-50',
-                'from-emerald-50 to-teal-50',
-                'from-violet-50 to-fuchsia-50',
-                'from-orange-50 to-pink-50',
-                'from-blue-50 to-indigo-50',
-                'from-teal-50 to-green-50',
-              ];
-              const bgGradient = bgGradients[index % bgGradients.length];
-              
-              const previewText = stripMarkdown(post.content).substring(0, 150) + (post.content.length > 150 ? '...' : '');
-              
-              return (
-                <div
-                  key={post.id}
-                  onClick={() => navigate(`/posts/${post.id}`)}
-                  className="group cursor-pointer bg-white rounded-3xl shadow-xl hover:shadow-2xl transition-all duration-500 overflow-hidden transform hover:-translate-y-2 animate-slide-up border border-gray-100 hover:border-transparent dark:bg-slate-900/80 dark:border-slate-800 dark:shadow-black/40"
-                  style={{ animationDelay: `${index * 100}ms` }}
-                >
-                  <div className={`h-2 bg-gradient-to-r ${gradient}`}></div>
-                  <div className={`bg-gradient-to-br ${bgGradient} p-8 transition-all duration-500 group-hover:opacity-90 dark:from-slate-900 dark:to-slate-950`}>
-                    <h2 className="text-2xl font-bold mb-1 text-gray-900 transition-all duration-300 line-clamp-2 dark:text-slate-100">
-                      {post.title}
-                    </h2>
-                    <div className="flex items-center gap-2 mb-2 flex-wrap">
-                      {post.isPremium && (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-gradient-to-r from-amber-400 to-orange-400 text-white text-xs font-bold rounded-full shadow-sm">
-                          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
-                          </svg>
-                          Premium • ₹{(post.price / 100).toFixed(0)}
-                        </span>
-                      )}
-                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-blue-50 border border-blue-200 text-blue-600 text-xs font-semibold rounded-full dark:bg-blue-900/30 dark:border-blue-700 dark:text-blue-400">
-                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        {post.readingTimeMinutes || 1} min read
-                      </span>
-                    </div>
-                    <p className="text-gray-700 mb-3 line-clamp-3 leading-relaxed dark:text-slate-300">{previewText}</p>
-                    {post.tags && post.tags.length > 0 && (
-                      <div className="flex flex-wrap gap-1.5 mb-4">
-                        {post.tags.map(tag => (
-                          <button
-                            key={tag}
-                            onClick={(e) => { e.stopPropagation(); handleTagClick(tag); }}
-                            className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border transition-all duration-150 hover:scale-105 ${
-                              selectedTag === tag
-                                ? 'bg-violet-600 border-violet-600 text-white'
-                                : 'bg-violet-50 border-violet-200 text-violet-700 hover:bg-violet-100 dark:bg-violet-900/30 dark:border-violet-700 dark:text-violet-300'
-                            }`}
-                          >
-                            #{tag}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                    <div className="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-slate-700">
-                      <div className="flex items-center gap-2">
-                        <div className={`w-12 h-12 bg-gradient-to-br ${gradient} rounded-full flex items-center justify-center text-white font-bold shadow-md ring-2 ring-white`}>
-                          {post.authorName.charAt(0).toUpperCase()}
+          <>
+            <div className="divide-y divide-gray-100 dark:divide-slate-800/80">
+              {posts.map((post) => {
+                const authorColor = colorFromString(post.authorName || 'A');
+                const previewText = stripMarkdown(post.content).substring(0, 160) + (post.content.length > 160 ? '...' : '');
+                return (
+                  <article
+                    key={post.id}
+                    onClick={() => navigate(`/posts/${post.id}`)}
+                    className="group cursor-pointer py-7 flex gap-5 items-start hover:bg-gray-50/60 dark:hover:bg-slate-900/40 -mx-3 px-3 rounded-xl transition-colors duration-150"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-2.5">
+                        <div className={`w-6 h-6 ${authorColor} rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0`}>
+                          {post.authorName?.charAt(0)?.toUpperCase()}
                         </div>
-                        <div>
-                          <Link 
-                            to={`/profile/${encodeURIComponent(post.authorName?.trim())}`} 
-                            onClick={(e) => e.stopPropagation()}
-                            className="text-sm font-bold text-gray-900 hover:text-blue-600 hover:underline transition-colors duration-200 dark:text-slate-100 dark:hover:text-cyan-300"
-                          >
-                            {post.authorName?.trim()}
-                          </Link>
-                          <p className="text-xs text-gray-600 dark:text-slate-400">{formatRelativeTime(post.createdAt)}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <button
-                          onClick={(e) => handleLike(e, post.id)}
-                          className={`flex items-center gap-1 px-3 py-1.5 rounded-full border font-semibold transition-all duration-200 hover:scale-110 ${
-                            post.likedByCurrentUser
-                              ? 'bg-red-50 border-red-300 text-red-500'
-                              : 'bg-white border-gray-200 text-gray-500 hover:border-red-300 hover:text-red-400'
-                          }`}
+                        <Link
+                          to={`/profile/${encodeURIComponent(post.authorName?.trim())}`}
+                          onClick={(e) => e.stopPropagation()}
+                          className="text-sm font-medium text-gray-700 dark:text-slate-300 hover:text-gray-900 dark:hover:text-white transition-colors"
                         >
-                          <svg className="w-4 h-4" fill={post.likedByCurrentUser ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                          </svg>
-                          <span className="text-sm">{post.likeCount || 0}</span>
-                        </button>
-                        <div className={`flex items-center gap-1 text-gray-700 bg-gradient-to-br ${bgGradient} px-3 py-1.5 rounded-full border border-gray-200 font-semibold`}>
-                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clipRule="evenodd" />
-                          </svg>
-                          <span className="text-sm">{post.commentCount}</span>
-                        </div>
-                        <div className="flex items-center gap-1 text-gray-500 bg-white px-3 py-1.5 rounded-full border border-gray-200 font-semibold dark:bg-slate-800 dark:border-slate-700 dark:text-slate-400">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                          </svg>
-                          <span className="text-sm">{post.viewCount || 0}</span>
+                          {post.authorName?.trim()}
+                        </Link>
+                        <span className="text-gray-300 dark:text-slate-700 text-xs">·</span>
+                        <span className="text-xs text-gray-400 dark:text-slate-500">{formatRelativeTime(post.createdAt)}</span>
+                        {post.isPremium && (
+                          <span className="ml-1 inline-flex items-center gap-1 px-2 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-xs font-semibold rounded-full border border-amber-200 dark:border-amber-700/50">
+                            <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
+                            Premium
+                          </span>
+                        )}
+                      </div>
+
+                      <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white leading-snug mb-1.5 group-hover:text-green-700 dark:group-hover:text-green-400 transition-colors line-clamp-2">
+                        {post.title}
+                      </h2>
+
+                      <p className="text-sm text-gray-500 dark:text-slate-400 leading-relaxed line-clamp-2 mb-3">
+                        {previewText}
+                      </p>
+
+                      <div className="flex items-center gap-3 flex-wrap">
+                        {post.tags && post.tags.length > 0 && (
+                          <div className="flex gap-1.5 flex-wrap">
+                            {post.tags.slice(0, 3).map(tag => (
+                              <button
+                                key={tag}
+                                onClick={(e) => { e.stopPropagation(); handleTagClick(tag); }}
+                                className={`px-2.5 py-0.5 rounded-full text-xs font-medium border transition-colors ${
+                                  selectedTag === tag
+                                    ? 'bg-gray-900 dark:bg-white border-gray-900 dark:border-white text-white dark:text-gray-900'
+                                    : 'bg-gray-100 dark:bg-slate-800 border-transparent text-gray-600 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-slate-700'
+                                }`}
+                              >
+                                #{tag}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+
+                        <div className="flex items-center gap-3 ml-auto text-xs text-gray-400 dark:text-slate-500 flex-shrink-0">
+                          <span className="flex items-center gap-1">
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                            {post.readingTimeMinutes || 1} min
+                          </span>
+
+                          <button
+                            onClick={(e) => handleLike(e, post.id)}
+                            className={`flex items-center gap-1 transition-colors hover:text-red-500 ${post.likedByCurrentUser ? 'text-red-500' : ''}`}
+                          >
+                            <svg className="w-3.5 h-3.5" fill={post.likedByCurrentUser ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                            </svg>
+                            {post.likeCount || 0}
+                          </button>
+
+                          <span className="flex items-center gap-1">
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
+                            {post.commentCount || 0}
+                          </span>
+
+                          <span className="flex items-center gap-1">
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                            {post.viewCount || 0}
+                          </span>
                         </div>
                       </div>
                     </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
 
-        {/* Pagination Controls */}
-        {!loading && !error && posts.length > 0 && totalPages > 1 && (
-          <div className="mt-12 flex items-center justify-center gap-6">
-            <button
-              onClick={handlePreviousPage}
-              disabled={isFirst}
-              className={`flex items-center gap-2 px-6 py-3 rounded-xl font-semibold transition-all duration-300 ${
-                isFirst
-                  ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                  : 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white hover:scale-105 hover:shadow-lg'
-              }`}
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-              Previous
-            </button>
-
-            <div className="flex items-center gap-3 px-6 py-3 bg-white rounded-xl shadow-md border border-gray-200">
-              <span className="text-gray-700 font-medium">
-                Page <span className="font-bold text-violet-600">{currentPage + 1}</span> of{' '}
-                <span className="font-bold text-violet-600">{totalPages}</span>
-              </span>
-              <span className="text-gray-400">•</span>
-              <span className="text-gray-600 text-sm">
-                {totalElements} {totalElements === 1 ? 'post' : 'posts'}
-              </span>
+                    <div className={`hidden sm:flex flex-shrink-0 w-20 h-20 ${authorColor} rounded-xl items-center justify-center text-white text-4xl font-black opacity-80 group-hover:opacity-100 transition-opacity select-none`}>
+                      {post.title?.charAt(0)?.toUpperCase()}
+                    </div>
+                  </article>
+                );
+              })}
             </div>
 
-            <button
-              onClick={handleNextPage}
-              disabled={isLast}
-              className={`flex items-center gap-2 px-6 py-3 rounded-xl font-semibold transition-all duration-300 ${
-                isLast
-                  ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                  : 'bg-gradient-to-r from-blue-600 to-violet-600 text-white hover:scale-105 hover:shadow-lg'
-              }`}
-            >
-              Next
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
-          </div>
+            {totalPages > 1 && (
+              <div className="mt-10 flex items-center justify-between border-t border-gray-100 dark:border-slate-800 pt-6">
+                <button
+                  onClick={handlePreviousPage}
+                  disabled={isFirst}
+                  className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-full border transition-colors ${
+                    isFirst
+                      ? 'border-gray-100 dark:border-slate-800 text-gray-300 dark:text-slate-700 cursor-not-allowed'
+                      : 'border-gray-200 dark:border-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800/60'
+                  }`}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+                  Previous
+                </button>
+
+                <span className="text-sm text-gray-500 dark:text-slate-400">
+                  Page <strong className="text-gray-900 dark:text-white">{currentPage + 1}</strong> of <strong className="text-gray-900 dark:text-white">{totalPages}</strong>
+                  <span className="hidden sm:inline"> · {totalElements} stories</span>
+                </span>
+
+                <button
+                  onClick={handleNextPage}
+                  disabled={isLast}
+                  className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-full border transition-colors ${
+                    isLast
+                      ? 'border-gray-100 dark:border-slate-800 text-gray-300 dark:text-slate-700 cursor-not-allowed'
+                      : 'border-gray-200 dark:border-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800/60'
+                  }`}
+                >
+                  Next
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                </button>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
