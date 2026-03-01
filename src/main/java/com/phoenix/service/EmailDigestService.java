@@ -68,7 +68,8 @@ public class EmailDigestService {
     }
 
     private void sendDigestEmail(User user, List<Post> topPosts) throws MessagingException {
-        if (user.getEmail() == null || user.getEmail().isEmpty()) {
+        String email = user.getEmail();
+        if (email == null || email.isEmpty()) {
             log.warn("User {} has no email address, skipping digest", user.getName());
             return;
         }
@@ -76,14 +77,16 @@ public class EmailDigestService {
         MimeMessage message = mailSender.createMimeMessage();
         MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
-        helper.setTo(user.getEmail());
+        helper.setTo(email);
         helper.setSubject("📬 Your Weekly Phoenix Digest");
 
         String htmlContent = buildDigestHtml(user, topPosts);
-        helper.setText(htmlContent, true);
+        if (htmlContent != null) {
+            helper.setText(htmlContent, true);
+        }
 
         mailSender.send(message);
-        log.debug("Digest sent to {}", user.getEmail());
+        log.debug("Digest sent to {}", email);
     }
 
     private String buildDigestHtml(User user, List<Post> topPosts) {
