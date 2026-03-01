@@ -71,6 +71,7 @@ public class UserController {
                                 .commentCount(post.getComments() != null ? post.getComments().size() : 0)
                                 .likeCount(likeCount)
                                 .likedByCurrentUser(liked)
+                                .viewCount(post.getViewCount())
                                 .status("PUBLISHED")
                                 .build();
                         })
