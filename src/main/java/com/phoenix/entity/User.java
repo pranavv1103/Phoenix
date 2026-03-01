@@ -49,7 +49,7 @@ public class User implements UserDetails {
     @Column(nullable = false)
     private LocalDateTime updatedAt;
 
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "boolean not null default true")
     @Builder.Default
     private boolean emailDigestEnabled = true;
 
