@@ -1,8 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import client from '../api/client';
 import useAuthStore from '../store/authStore';
 import MDEditor from '@uiw/react-md-editor';
+
+const AUTOSAVE_INTERVAL = 30000; // 30 seconds
 
 export default function EditPostPage() {
   const { id } = useParams();
@@ -19,6 +21,11 @@ export default function EditPostPage() {
   const [error, setError] = useState('');
   const [post, setPost] = useState(null);
   const [postStatus, setPostStatus] = useState('PUBLISHED');
+  const [autoSaveStatus, setAutoSaveStatus] = useState('');
+  const [lastSaved, setLastSaved] = useState(null);
+  const autoSaveTimer = useRef(null);
+  const hasUnsavedChanges = useRef(false);
+  const initialData = useRef({});
 
   const addTag = (raw) => {
     const tag = raw.trim().toLowerCase().replace(/[^a-z0-9-]/g, '');
@@ -39,6 +46,45 @@ export default function EditPostPage() {
 
   const removeTag = (tag) => setTags(prev => prev.filter(t => t !== tag));
 
+  // Auto-save to localStorage
+  const autoSave = useCallback(() => {
+    const AUTOSAVE_KEY = `phoenix_edit_post_${id}_autosave`;
+    if (!title && !content) return;
+    
+    setAutoSaveStatus('saving');
+    const data = { title, content, isPremium, price, tags, timestamp: Date.now() };
+    localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(data));
+    setLastSaved(new Date());
+    setAutoSaveStatus('saved');
+    hasUnsavedChanges.current = false;
+    
+    setTimeout(() => setAutoSaveStatus(''), 2000);
+  }, [id, title, content, isPremium, price, tags]);
+
+  // Setup auto-save interval
+  useEffect(() => {
+    if (hasUnsavedChanges.current && post) {
+      if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
+      autoSaveTimer.current = setTimeout(() => autoSave(), AUTOSAVE_INTERVAL);
+    }
+    return () => {
+      if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
+    };
+  }, [title, content, isPremium, price, tags, post, autoSave]);
+
+  // Track changes
+  useEffect(() => {
+    if (post) {
+      const changed = 
+        title !== initialData.current.title ||
+        content !== initialData.current.content ||
+        isPremium !== initialData.current.isPremium ||
+        price !== initialData.current.price ||
+        JSON.stringify(tags) !== JSON.stringify(initialData.current.tags);
+      hasUnsavedChanges.current = changed;
+    }
+  }, [title, content, isPremium, price, tags, post]);
+
   useEffect(() => {
     const fetchPost = async () => {
       try {
@@ -50,12 +96,60 @@ export default function EditPostPage() {
           return;
         }
         setPost(postData);
-        setTitle(postData.title);
-        setIsPremium(postData.isPremium || false);
-        setPrice(postData.price ? (postData.price / 100).toString() : '');
-        setTags(postData.tags || []);
+        const postTitle = postData.title;
+        const postContent = postData.content || '';
+        const postIsPremium = postData.isPremium || false;
+        const postPrice = postData.price ? (postData.price / 100).toString() : '';
+        const postTags = postData.tags || [];
+        
+        // Store initial data for comparison
+        initialData.current = {
+          title: postTitle,
+          content: postContent,
+          isPremium: postIsPremium,
+          price: postPrice,
+          tags: postTags
+        };
+        
+        // Check for auto-saved data
+        const AUTOSAVE_KEY = `phoenix_edit_post_${id}_autosave`;
+        const saved = localStorage.getItem(AUTOSAVE_KEY);
+        if (saved) {
+          try {
+            const data = JSON.parse(saved);
+            const ageMinutes = (Date.now() - data.timestamp) / 1000 / 60;
+            if (ageMinutes < 60) {
+              // Use auto-saved data if recent
+              setTitle(data.title || postTitle);
+              setContent(data.content || postContent);
+              setIsPremium(data.isPremium ?? postIsPremium);
+              setPrice(data.price || postPrice);
+              setTags(data.tags || postTags);
+              setLastSaved(new Date(data.timestamp));
+            } else {
+              localStorage.removeItem(AUTOSAVE_KEY);
+              setTitle(postTitle);
+              setContent(postContent);
+              setIsPremium(postIsPremium);
+              setPrice(postPrice);
+              setTags(postTags);
+            }
+          } catch {
+            localStorage.removeItem(AUTOSAVE_KEY);
+            setTitle(postTitle);
+            setContent(postContent);
+            setIsPremium(postIsPremium);
+            setPrice(postPrice);
+            setTags(postTags);
+          }
+        } else {
+          setTitle(postTitle);
+          setContent(postContent);
+          setIsPremium(postIsPremium);
+          setPrice(postPrice);
+          setTags(postTags);
+        }
         setPostStatus(postData.status || 'PUBLISHED');
-        setContent(postData.content || '');
       } catch {
         setError('Failed to load post');
       } finally {
@@ -72,6 +166,8 @@ export default function EditPostPage() {
       setError('');
       const priceInPaise = isPremium ? Math.round(parseFloat(price || '0') * 100) : 0;
       await client.put(`/api/posts/${id}`, { title, content, isPremium, price: priceInPaise, tags, saveAsDraft });
+      const AUTOSAVE_KEY = `phoenix_edit_post_${id}_autosave`;
+      localStorage.removeItem(AUTOSAVE_KEY); // Clear auto-save on success
       navigate(`/posts/${id}`);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to update post');
@@ -117,12 +213,34 @@ export default function EditPostPage() {
         </button>
 
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-sm p-6 sm:p-8">
-          <div className="flex items-center gap-3 mb-6">
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Edit Post</h1>
-            {postStatus === 'DRAFT' && (
-              <span className="px-2.5 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-xs font-semibold rounded-full border border-amber-200 dark:border-amber-700/50">
-                Draft
-              </span>
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Edit Post</h1>
+              {postStatus === 'DRAFT' && (
+                <span className="px-2.5 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-xs font-semibold rounded-full border border-amber-200 dark:border-amber-700/50">
+                  Draft
+                </span>
+              )}
+            </div>
+            {/* Auto-save status indicator */}
+            {autoSaveStatus && (
+              <div className="flex items-center gap-2 text-xs">
+                {autoSaveStatus === 'saving' ? (
+                  <>
+                    <div className="w-3 h-3 border-2 border-green-200 dark:border-green-800 border-t-green-600 dark:border-t-green-400 rounded-full animate-spin" />
+                    <span className="text-gray-500 dark:text-slate-400">Saving...</span>
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-3 h-3 text-green-600 dark:text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                    <span className="text-gray-500 dark:text-slate-400">
+                      Saved {lastSaved && lastSaved.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </>
+                )}
+              </div>
             )}
           </div>
 

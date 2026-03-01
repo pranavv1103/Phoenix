@@ -1,7 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import client from '../api/client';
 import MDEditor from '@uiw/react-md-editor';
+
+const AUTOSAVE_KEY = 'phoenix_create_post_autosave';
+const AUTOSAVE_INTERVAL = 30000; // 30 seconds
 
 export default function CreatePostPage() {
   const [title, setTitle] = useState('');
@@ -12,7 +15,77 @@ export default function CreatePostPage() {
   const [tagInput, setTagInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [autoSaveStatus, setAutoSaveStatus] = useState(''); // '', 'saving', 'saved'
+  const [lastSaved, setLastSaved] = useState(null);
+  const [showRestorePrompt, setShowRestorePrompt] = useState(false);
   const navigate = useNavigate();
+  const autoSaveTimer = useRef(null);
+  const hasUnsavedChanges = useRef(false);
+
+  // Auto-save to localStorage
+  const autoSave = useCallback(() => {
+    if (!title && !content && tags.length === 0) return;
+    
+    setAutoSaveStatus('saving');
+    const data = { title, content, isPremium, price, tags, timestamp: Date.now() };
+    localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(data));
+    setLastSaved(new Date());
+    setAutoSaveStatus('saved');
+    hasUnsavedChanges.current = false;
+    
+    setTimeout(() => setAutoSaveStatus(''), 2000);
+  }, [title, content, isPremium, price, tags]);
+
+  // Restore from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem(AUTOSAVE_KEY);
+    if (saved) {
+      try {
+        const data = JSON.parse(saved);
+        const ageMinutes = (Date.now() - data.timestamp) / 1000 / 60;
+        if (ageMinutes < 60) { // Only restore if less than 1 hour old
+          setShowRestorePrompt(true);
+        }
+      } catch (e) {
+        localStorage.removeItem(AUTOSAVE_KEY);
+      }
+    }
+  }, []);
+
+  const restoreAutoSave = () => {
+    const saved = localStorage.getItem(AUTOSAVE_KEY);
+    if (saved) {
+      const data = JSON.parse(saved);
+      setTitle(data.title || '');
+      setContent(data.content || '');
+      setIsPremium(data.isPremium || false);
+      setPrice(data.price || '');
+      setTags(data.tags || []);
+      setLastSaved(new Date(data.timestamp));
+    }
+    setShowRestorePrompt(false);
+  };
+
+  const dismissRestore = () => {
+    localStorage.removeItem(AUTOSAVE_KEY);
+    setShowRestorePrompt(false);
+  };
+
+  // Setup auto-save interval
+  useEffect(() => {
+    if (hasUnsavedChanges.current) {
+      if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
+      autoSaveTimer.current = setTimeout(() => autoSave(), AUTOSAVE_INTERVAL);
+    }
+    return () => {
+      if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
+    };
+  }, [title, content, isPremium, price, tags, autoSave]);
+
+  // Track changes
+  useEffect(() => {
+    hasUnsavedChanges.current = true;
+  }, [title, content, isPremium, price, tags]);
 
   const addTag = (raw) => {
     const tag = raw.trim().toLowerCase().replace(/[^a-z0-9-]/g, '');
@@ -44,6 +117,7 @@ export default function CreatePostPage() {
     try {
       const priceInPaise = isPremium ? Math.round(parseFloat(price || '0') * 100) : 0;
       const response = await client.post('/api/posts', { title, content, isPremium, price: priceInPaise, tags, saveAsDraft });
+      localStorage.removeItem(AUTOSAVE_KEY); // Clear auto-save on success
       navigate(`/posts/${response.data.data.id}`);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to create post');
@@ -61,9 +135,58 @@ export default function CreatePostPage() {
     <div className="min-h-screen bg-gray-50 dark:bg-slate-950 py-10 px-4">
       <div className="max-w-3xl mx-auto">
         <div className="mb-8">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Create New Post</h1>
-          <p className="mt-1 text-sm text-gray-500 dark:text-slate-400">Share your thoughts with the community</p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Create New Post</h1>
+              <p className="mt-1 text-sm text-gray-500 dark:text-slate-400">Share your thoughts with the community</p>
+            </div>
+            {/* Auto-save status indicator */}
+            {autoSaveStatus && (
+              <div className="flex items-center gap-2 text-xs">
+                {autoSaveStatus === 'saving' ? (
+                  <>
+                    <div className="w-3 h-3 border-2 border-green-200 dark:border-green-800 border-t-green-600 dark:border-t-green-400 rounded-full animate-spin" />
+                    <span className="text-gray-500 dark:text-slate-400">Saving...</span>
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-3 h-3 text-green-600 dark:text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                    <span className="text-gray-500 dark:text-slate-400">
+                      Saved {lastSaved && lastSaved.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
         </div>
+
+        {/* Restore prompt */}
+        {showRestorePrompt && (
+          <div className="mb-6 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex gap-3">
+                <svg className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                </svg>
+                <div>
+                  <p className="text-sm font-semibold text-blue-900 dark:text-blue-200">Unsaved changes detected</p>
+                  <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">We found a draft you were working on. Would you like to restore it?</p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <button onClick={restoreAutoSave} className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg transition-colors">
+                  Restore
+                </button>
+                <button onClick={dismissRestore} className="px-3 py-1.5 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 text-xs font-semibold transition-colors">
+                  Dismiss
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-sm p-6 sm:p-8">
           {error && (
