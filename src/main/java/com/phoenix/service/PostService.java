@@ -234,11 +234,18 @@ public class PostService {
         List<String> tagNames = post.getTags().stream()
                 .map(com.phoenix.entity.Tag::getName)
                 .collect(Collectors.toList());
-        if (tagNames.isEmpty()) {
-            return List.of();
+
+        // Try tag-based related posts first (up to 4)
+        List<Post> related = tagNames.isEmpty()
+                ? List.of()
+                : postRepository.findRelatedPosts(tagNames, id, PageRequest.of(0, 4));
+
+        // Fallback: show recent published posts if no tag matches found
+        if (related.isEmpty()) {
+            related = postRepository.findRecentPostsExcluding(id, PageRequest.of(0, 3));
         }
-        return postRepository.findRelatedPosts(tagNames, id, PageRequest.of(0, 3))
-                .stream()
+
+        return related.stream()
                 .map(this::convertToResponse)
                 .collect(Collectors.toList());
     }

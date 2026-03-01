@@ -30,14 +30,12 @@ export default function CreatePostPage() {
     const data = { title, content, isPremium, price, tags, timestamp: Date.now() };
     localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(data));
     
-    // Delay to show 'saving' animation before showing 'saved'
+    // Short delay so the spinner animates before showing 'saved'
     setTimeout(() => {
       setLastSaved(new Date());
       setAutoSaveStatus('saved');
       hasUnsavedChanges.current = false;
-      
-      // Clear status after 2 seconds
-      setTimeout(() => setAutoSaveStatus(''), 2000);
+      // Note: we intentionally do NOT clear status — 'Saved at HH:MM' stays visible
     }, 300);
   }, [title, content, isPremium, price, tags]);
 
@@ -151,17 +149,17 @@ export default function CreatePostPage() {
               <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Create New Post</h1>
               <p className="mt-1 text-sm text-gray-500 dark:text-slate-400">Share your thoughts with the community</p>
             </div>
-            {/* Auto-save status indicator */}
-            {autoSaveStatus && (
-              <div className="flex items-center gap-2 text-xs">
+            {/* Auto-save status indicator — stays visible once saved (Google Docs style) */}
+            {(autoSaveStatus === 'saving' || lastSaved) && (
+              <div className="flex items-center gap-1.5 text-xs">
                 {autoSaveStatus === 'saving' ? (
                   <>
-                    <div className="w-3 h-3 border-2 border-green-200 dark:border-green-800 border-t-green-600 dark:border-t-green-400 rounded-full animate-spin" />
+                    <div className="w-3 h-3 border-2 border-green-200 dark:border-green-800 border-t-green-600 dark:border-t-green-400 rounded-full animate-spin flex-shrink-0" />
                     <span className="text-gray-500 dark:text-slate-400">Saving...</span>
                   </>
                 ) : (
                   <>
-                    <svg className="w-3 h-3 text-green-600 dark:text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                    <svg className="w-3.5 h-3.5 text-green-600 dark:text-green-400 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                     </svg>
                     <span className="text-gray-500 dark:text-slate-400">

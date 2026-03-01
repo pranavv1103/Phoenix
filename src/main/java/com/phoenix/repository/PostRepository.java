@@ -68,7 +68,7 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
     );
 
     @Query(
-        "select p from Post p join p.tags t where t.name in :tagNames and p.id != :excludeId " +
+        "select p from Post p join p.tags t where p.status = 'PUBLISHED' and t.name in :tagNames and p.id != :excludeId " +
         "group by p order by count(t) desc, p.createdAt desc"
     )
     List<Post> findRelatedPosts(
@@ -76,4 +76,7 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
         @Param("excludeId") UUID excludeId,
         Pageable pageable
     );
+
+    @Query("select p from Post p where p.status = 'PUBLISHED' and p.id != :excludeId order by p.createdAt desc")
+    List<Post> findRecentPostsExcluding(@Param("excludeId") UUID excludeId, Pageable pageable);
 }

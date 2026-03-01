@@ -446,25 +446,42 @@ export default function PostDetailPage() {
             <div className="mb-6">
               <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
                 <span className="w-1 h-5 bg-green-500 rounded-full inline-block"></span>
-                Related Posts
+                More to Read
               </h2>
-              <div className="grid gap-3 sm:grid-cols-3">
+              <div className="grid gap-3 sm:grid-cols-2">
                 {relatedPosts.map(rp => (
-                  <button
+                  <Link
                     key={rp.id}
-                    onClick={() => navigate(`/posts/${rp.id}`)}
-                    className="text-left bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-slate-800 p-4 hover:border-green-300 dark:hover:border-green-700/50 hover:shadow-sm transition-all group"
+                    to={`/posts/${rp.id}`}
+                    className="group flex flex-col bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-slate-800 p-4 hover:border-green-300 dark:hover:border-green-700/50 hover:shadow-md transition-all"
                   >
-                    <h3 className="text-sm font-semibold text-gray-900 dark:text-white line-clamp-2 mb-1.5 group-hover:text-green-700 dark:group-hover:text-green-400 transition-colors">{rp.title}</h3>
-                    <p className="text-xs text-gray-400 dark:text-slate-500">{rp.authorName} · {rp.readingTimeMinutes || 1} min</p>
+                    {/* Tags row */}
                     {rp.tags && rp.tags.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mt-2">
-                        {rp.tags.slice(0, 2).map(tag => (
-                          <span key={tag} className="px-2 py-0.5 bg-gray-100 dark:bg-slate-800 text-gray-500 dark:text-slate-400 rounded-full text-xs">#{tag}</span>
+                      <div className="flex flex-wrap gap-1 mb-2">
+                        {rp.tags.slice(0, 3).map(tag => (
+                          <span key={tag} className="px-2 py-0.5 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 rounded-full text-xs font-medium border border-green-100 dark:border-green-800/40">#{tag}</span>
                         ))}
                       </div>
                     )}
-                  </button>
+                    {/* Title */}
+                    <h3 className="text-sm font-semibold text-gray-900 dark:text-white line-clamp-2 mb-2 group-hover:text-green-700 dark:group-hover:text-green-400 transition-colors leading-snug flex-1">{rp.title}</h3>
+                    {/* Meta */}
+                    <div className="flex items-center justify-between mt-auto pt-2 border-t border-gray-100 dark:border-slate-800">
+                      <div className="flex items-center gap-1.5">
+                        <div className={`w-5 h-5 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0 ${colorFromString(rp.authorName || 'A')}`}>
+                          {(rp.authorName || 'A')[0].toUpperCase()}
+                        </div>
+                        <span className="text-xs text-gray-500 dark:text-slate-400 truncate max-w-[100px]">{rp.authorName}</span>
+                      </div>
+                      <div className="flex items-center gap-3 text-xs text-gray-400 dark:text-slate-500">
+                        <span>{rp.readingTimeMinutes || 1} min read</span>
+                        <span className="flex items-center gap-1">
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
+                          {rp.likeCount || 0}
+                        </span>
+                      </div>
+                    </div>
+                  </Link>
                 ))}
               </div>
             </div>
