@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import client from '../api/client';
 import useAuthStore from '../store/authStore';
@@ -65,9 +65,7 @@ export default function HomePage() {
 
   useEffect(() => { setCurrentPage(0); }, [selectedTag]);
 
-  useEffect(() => { fetchPosts(); }, [debouncedSearchQuery, currentPage, sortOption, selectedTag]);
-
-  const fetchPosts = async () => {
+  const fetchPosts = useCallback(async () => {
     try {
       setLoading(true);
       let url = `/api/posts?page=${currentPage}&size=${pageSize}&sort=${encodeURIComponent(sortOption)}`;
@@ -83,7 +81,9 @@ export default function HomePage() {
       setError('');
     } catch { setError('Failed to load posts'); }
     finally { setLoading(false); }
-  };
+  }, [debouncedSearchQuery, currentPage, sortOption, selectedTag, pageSize]);
+
+  useEffect(() => { fetchPosts(); }, [fetchPosts]);
 
   const handleNextPage = () => { if (!isLast) { setCurrentPage(p => p + 1); window.scrollTo({ top: 0, behavior: 'smooth' }); } };
   const handlePreviousPage = () => { if (!isFirst) { setCurrentPage(p => p - 1); window.scrollTo({ top: 0, behavior: 'smooth' }); } };
