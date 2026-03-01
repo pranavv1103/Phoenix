@@ -77,6 +77,21 @@ public class PostController {
         return ResponseEntity.ok(ApiResponse.success("Post deleted successfully", null));
     }
 
+    @GetMapping("/trending")
+    public ResponseEntity<ApiResponse<PagedResponse<PostResponse>>> getTrendingPosts(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "6") int size) {
+        return ResponseEntity.ok(ApiResponse.success("Trending posts retrieved", postService.getTrendingPosts(page, size)));
+    }
+
+    @GetMapping("/following")
+    public ResponseEntity<ApiResponse<PagedResponse<PostResponse>>> getFollowingFeed(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "6") int size) {
+        return ResponseEntity.ok(ApiResponse.success("Following feed retrieved",
+                postService.getFollowingFeed(page, size, getCurrentUserEmail())));
+    }
+
     @GetMapping("/{id}/related")
     public ResponseEntity<ApiResponse<List<PostResponse>>> getRelatedPosts(@PathVariable @NonNull UUID id) {
         return ResponseEntity.ok(ApiResponse.success("Related posts retrieved", postService.getRelatedPosts(id)));

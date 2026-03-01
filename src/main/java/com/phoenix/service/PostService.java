@@ -12,6 +12,7 @@ import com.phoenix.exception.PostNotFoundException;
 import com.phoenix.exception.UnauthorizedException;
 import com.phoenix.repository.BookmarkRepository;
 import com.phoenix.repository.CommentRepository;
+import com.phoenix.repository.FollowRepository;
 import com.phoenix.repository.LikeRepository;
 import com.phoenix.repository.PaymentRepository;
 import com.phoenix.repository.PostRepository;
@@ -49,6 +50,7 @@ public class PostService {
     private final PaymentRepository paymentRepository;
     private final PostViewRepository postViewRepository;
     private final TagRepository tagRepository;
+    private final FollowRepository followRepository;
 
     @Transactional(readOnly = true)
     public PagedResponse<PostResponse> getAllPosts(int page, int size, String sort, String tag) {
@@ -225,6 +227,32 @@ public class PostService {
                 .stream()
                 .map(this::convertToResponse)
                 .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public PagedResponse<PostResponse> getTrendingPosts(int page, int size) {
+        Page<Post> postPage = postRepository.findAllOrderByLikeCountDesc(PageRequest.of(page, size));
+        return buildPagedResponse(postPage);
+    }
+
+    @Transactional(readOnly = true)
+    public PagedResponse<PostResponse> getFollowingFeed(int page, int size, String userEmail) {
+        User user = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+        List<UUID> followingIds = followRepository.findFollowingIdsByFollowerId(user.getId());
+        if (followingIds.isEmpty()) {
+            return PagedResponse.<PostResponse>builder()
+                    .content(List.of())
+                    .pageNumber(page)
+                    .pageSize(size)
+                    .totalElements(0)
+                    .totalPages(0)
+                    .first(true)
+                    .last(true)
+                    .build();
+        }
+        Page<Post> postPage = postRepository.findByAuthorIdIn(followingIds, PageRequest.of(page, size));
+        return buildPagedResponse(postPage);
     }
 
     @Transactional(readOnly = true)

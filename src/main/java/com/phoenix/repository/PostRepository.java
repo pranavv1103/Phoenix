@@ -79,4 +79,10 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
 
     @Query("select p from Post p where p.status = 'PUBLISHED' and p.id != :excludeId order by p.createdAt desc")
     List<Post> findRecentPostsExcluding(@Param("excludeId") UUID excludeId, Pageable pageable);
+
+    @Query(
+        value = "select p from Post p where p.status = 'PUBLISHED' and p.author.id in :authorIds order by p.createdAt desc",
+        countQuery = "select count(p) from Post p where p.status = 'PUBLISHED' and p.author.id in :authorIds"
+    )
+    Page<Post> findByAuthorIdIn(@Param("authorIds") List<UUID> authorIds, Pageable pageable);
 }

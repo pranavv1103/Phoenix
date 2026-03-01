@@ -36,6 +36,7 @@ export default function HomePage() {
   const [isLast, setIsLast] = useState(true);
   const [availableTags, setAvailableTags] = useState([]);
   const [selectedTag, setSelectedTag] = useState('');
+  const [activeTab, setActiveTab] = useState('forYou');
   const searchRef = useRef(null);
   const pageSize = 6;
   const navigate = useNavigate();
@@ -64,13 +65,26 @@ export default function HomePage() {
   }, [searchQuery]);
 
   useEffect(() => { setCurrentPage(0); }, [selectedTag]);
+  useEffect(() => { setCurrentPage(0); }, [activeTab]);
 
   const fetchPosts = useCallback(async () => {
+    if (activeTab === 'following' && !isAuthenticated) {
+      setPosts([]);
+      setLoading(false);
+      return;
+    }
     try {
       setLoading(true);
-      let url = `/api/posts?page=${currentPage}&size=${pageSize}&sort=${encodeURIComponent(sortOption)}`;
-      if (debouncedSearchQuery.trim()) url += `&search=${encodeURIComponent(debouncedSearchQuery.trim())}`;
-      if (selectedTag) url += `&tag=${encodeURIComponent(selectedTag)}`;
+      let url;
+      if (activeTab === 'trending') {
+        url = `/api/posts/trending?page=${currentPage}&size=${pageSize}`;
+      } else if (activeTab === 'following') {
+        url = `/api/posts/following?page=${currentPage}&size=${pageSize}`;
+      } else {
+        url = `/api/posts?page=${currentPage}&size=${pageSize}&sort=${encodeURIComponent(sortOption)}`;
+        if (debouncedSearchQuery.trim()) url += `&search=${encodeURIComponent(debouncedSearchQuery.trim())}`;
+        if (selectedTag) url += `&tag=${encodeURIComponent(selectedTag)}`;
+      }
       const response = await client.get(url);
       const pageData = response.data.data;
       setPosts(pageData.content);
@@ -81,7 +95,7 @@ export default function HomePage() {
       setError('');
     } catch { setError('Failed to load posts'); }
     finally { setLoading(false); }
-  }, [debouncedSearchQuery, currentPage, sortOption, selectedTag, pageSize]);
+  }, [activeTab, isAuthenticated, debouncedSearchQuery, currentPage, sortOption, selectedTag, pageSize]);
 
   useEffect(() => { fetchPosts(); }, [fetchPosts]);
 
@@ -94,22 +108,41 @@ export default function HomePage() {
     <div className="min-h-screen bg-gray-50 dark:bg-slate-950">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-10">
 
-        <div className="mb-8">
+        <div className="mb-6">
           <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white tracking-tight">
-            {selectedTag ? (
+            {activeTab === 'forYou' && selectedTag ? (
               <span>Stories tagged <span className="text-green-600 dark:text-green-400">#{selectedTag}</span></span>
-            ) : searchQuery ? (
+            ) : activeTab === 'forYou' && searchQuery ? (
               <span>Search results</span>
             ) : (
-              'Featured Stories'
+              'Phoenix'
             )}
           </h1>
-          {!selectedTag && !searchQuery && (
-            <p className="mt-1.5 text-gray-500 dark:text-slate-400">Thoughtful articles from our community</p>
-          )}
+          <p className="mt-1 text-gray-500 dark:text-slate-400 text-sm">
+            {activeTab === 'forYou' && !selectedTag && !searchQuery && 'Thoughtful articles from our community'}
+            {activeTab === 'trending' && 'Most liked stories right now'}
+            {activeTab === 'following' && 'Latest from authors you follow'}
+          </p>
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-3 mb-6">
+        {/* Tab Bar */}
+        <div className="flex gap-0 mb-6 border-b border-gray-200 dark:border-slate-800">
+          {[{ key: 'forYou', label: 'For You' }, { key: 'trending', label: '🔥 Trending' }, { key: 'following', label: 'Following' }].map(tab => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={`px-5 py-2.5 text-sm font-semibold transition-colors border-b-2 -mb-px ${
+                activeTab === tab.key
+                  ? 'border-green-600 text-green-700 dark:text-green-400 dark:border-green-500'
+                  : 'border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-800 dark:hover:text-slate-200'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {activeTab === 'forYou' && <div className="flex flex-col sm:flex-row gap-3 mb-6">
           <div className="relative flex-1">
             <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-slate-500 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -137,9 +170,9 @@ export default function HomePage() {
             <option value="oldest">Oldest first</option>
             <option value="mostLiked">Most liked</option>
           </select>
-        </div>
+        </div>}
 
-        {availableTags.length > 0 && (
+        {activeTab === 'forYou' && availableTags.length > 0 && (
           <div className="flex flex-wrap gap-2 mb-6">
             {availableTags.map(tag => (
               <button
@@ -178,6 +211,21 @@ export default function HomePage() {
             <p className="text-sm text-gray-600 dark:text-slate-400">{error}</p>
             <button onClick={fetchPosts} className="text-sm text-green-600 dark:text-green-400 hover:underline font-medium">Try again</button>
           </div>
+        ) : !isAuthenticated && activeTab === 'following' ? (
+          <div className="flex flex-col items-center justify-center py-24 gap-4 text-center">
+            <div className="w-14 h-14 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center">
+              <svg className="w-7 h-7 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-lg font-semibold text-gray-800 dark:text-slate-100">Sign in to see your feed</p>
+              <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">Follow authors and their latest stories will appear here.</p>
+            </div>
+            <Link to="/login" className="mt-2 px-5 py-2.5 text-sm font-semibold text-white bg-green-600 rounded-full hover:bg-green-700 transition-colors">
+              Sign in
+            </Link>
+          </div>
         ) : posts.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-24 gap-4 text-center">
             <div className="w-14 h-14 bg-gray-100 dark:bg-slate-800 rounded-full flex items-center justify-center">
@@ -186,12 +234,20 @@ export default function HomePage() {
               </svg>
             </div>
             <div>
-              <p className="text-lg font-semibold text-gray-800 dark:text-slate-100">{searchQuery ? 'No results found' : 'No stories yet'}</p>
+              <p className="text-lg font-semibold text-gray-800 dark:text-slate-100">
+                {activeTab === 'following' ? 'Nothing here yet' : searchQuery ? 'No results found' : 'No stories yet'}
+              </p>
               <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">
-                {searchQuery ? 'Try a different search term.' : 'Be the first to share your story.'}
+                {activeTab === 'following'
+                  ? 'Follow some authors to see their stories here.'
+                  : searchQuery ? 'Try a different search term.' : 'Be the first to share your story.'}
               </p>
             </div>
-            {!searchQuery && (
+            {activeTab === 'following' ? (
+              <button onClick={() => setActiveTab('forYou')} className="mt-2 px-5 py-2.5 text-sm font-semibold text-white bg-gray-900 dark:bg-white dark:text-gray-900 rounded-full hover:bg-gray-700 dark:hover:bg-gray-200 transition-colors">
+                Discover authors
+              </button>
+            ) : !searchQuery && (
               <Link to="/create" className="mt-2 px-5 py-2.5 text-sm font-semibold text-white bg-gray-900 dark:bg-white dark:text-gray-900 rounded-full hover:bg-gray-700 dark:hover:bg-gray-200 transition-colors">
                 Write a story
               </Link>
@@ -200,7 +256,7 @@ export default function HomePage() {
         ) : (
           <>
             <div className="divide-y divide-gray-100 dark:divide-slate-800/80">
-              {posts.map((post) => {
+              {posts.map((post, idx) => {
                 const authorColor = colorFromString(post.authorName || 'A');
                 const previewText = stripMarkdown(post.content).substring(0, 160) + (post.content.length > 160 ? '...' : '');
                 return (
@@ -287,8 +343,11 @@ export default function HomePage() {
                       </div>
                     </div>
 
-                    <div className={`hidden sm:flex flex-shrink-0 w-20 h-20 ${authorColor} rounded-xl items-center justify-center text-white text-4xl font-black opacity-80 group-hover:opacity-100 transition-opacity select-none`}>
-                      {post.title?.charAt(0)?.toUpperCase()}
+                    <div className={`hidden sm:flex flex-shrink-0 w-20 h-20 ${authorColor} rounded-xl items-center justify-center text-white opacity-80 group-hover:opacity-100 transition-opacity select-none overflow-hidden`}>
+                      {activeTab === 'trending'
+                        ? <span className="text-3xl font-black tabular-nums">{String(currentPage * pageSize + idx + 1).padStart(2, '0')}</span>
+                        : <span className="text-4xl font-black">{post.title?.charAt(0)?.toUpperCase()}</span>
+                      }
                     </div>
                   </article>
                 );
