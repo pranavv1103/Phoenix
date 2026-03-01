@@ -28,4 +28,6 @@ public class PostRequest {
     private List<String> tags = new ArrayList<>();
 
     private boolean saveAsDraft = false;
+
+    private String coverImageUrl;
 }

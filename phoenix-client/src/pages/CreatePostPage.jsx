@@ -13,6 +13,9 @@ export default function CreatePostPage() {
   const [price, setPrice] = useState('');
   const [tags, setTags] = useState([]);
   const [tagInput, setTagInput] = useState('');
+  const [coverImageUrl, setCoverImageUrl] = useState('');
+  const [coverImageDragging, setCoverImageDragging] = useState(false);
+  const imageInputRef = useRef(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [autoSaveStatus, setAutoSaveStatus] = useState(''); // '', 'saving', 'saved'
@@ -22,12 +25,23 @@ export default function CreatePostPage() {
   const autoSaveTimer = useRef(null);
   const hasUnsavedChanges = useRef(false);
 
+  const handleImageFile = useCallback((file) => {
+    if (!file || !file.type.startsWith('image/')) return;
+    if (file.size > 3 * 1024 * 1024) {
+      alert('Image must be smaller than 3 MB');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (e) => setCoverImageUrl(e.target.result);
+    reader.readAsDataURL(file);
+  }, []);
+
   // Auto-save to localStorage
   const autoSave = useCallback(() => {
     if (!title && !content && tags.length === 0) return;
     
     setAutoSaveStatus('saving');
-    const data = { title, content, isPremium, price, tags, timestamp: Date.now() };
+    const data = { title, content, isPremium, price, tags, coverImageUrl, timestamp: Date.now() };
     localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(data));
     
     // Short delay so the spinner animates before showing 'saved'
@@ -64,6 +78,7 @@ export default function CreatePostPage() {
       setIsPremium(data.isPremium || false);
       setPrice(data.price || '');
       setTags(data.tags || []);
+      if (data.coverImageUrl) setCoverImageUrl(data.coverImageUrl);
       setLastSaved(new Date(data.timestamp));
     }
     setShowRestorePrompt(false);
@@ -89,12 +104,12 @@ export default function CreatePostPage() {
     return () => {
       if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
     };
-  }, [title, content, isPremium, price, tags, autoSave]);
+  }, [title, content, isPremium, price, tags, coverImageUrl, autoSave]);
 
   // Track changes
   useEffect(() => {
     hasUnsavedChanges.current = true;
-  }, [title, content, isPremium, price, tags]);
+  }, [title, content, isPremium, price, tags, coverImageUrl]);
 
   const addTag = (raw) => {
     const tag = raw.trim().toLowerCase().replace(/[^a-z0-9-]/g, '');
@@ -125,7 +140,7 @@ export default function CreatePostPage() {
     }
     try {
       const priceInPaise = isPremium ? Math.round(parseFloat(price || '0') * 100) : 0;
-      const response = await client.post('/api/posts', { title, content, isPremium, price: priceInPaise, tags, saveAsDraft });
+      const response = await client.post('/api/posts', { title, content, isPremium, price: priceInPaise, tags, saveAsDraft, coverImageUrl: coverImageUrl || null });
       localStorage.removeItem(AUTOSAVE_KEY); // Clear auto-save on success
       navigate(`/posts/${response.data.data.id}`);
     } catch (err) {
@@ -214,6 +229,46 @@ export default function CreatePostPage() {
                 placeholder="Enter an engaging title..."
                 required
               />
+            </div>
+
+            {/* Cover Image */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">
+                Cover Image
+                <span className="ml-2 font-normal text-gray-400 dark:text-slate-500 text-xs">(optional — max 3 MB)</span>
+              </label>
+              {coverImageUrl ? (
+                <div className="relative rounded-xl overflow-hidden border border-gray-200 dark:border-slate-700">
+                  <img src={coverImageUrl} alt="Cover preview" className="w-full h-48 object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => setCoverImageUrl('')}
+                    className="absolute top-2 right-2 flex items-center gap-1 px-3 py-1.5 text-xs font-semibold bg-white/90 dark:bg-slate-800/90 text-gray-700 dark:text-slate-200 rounded-full shadow hover:bg-white dark:hover:bg-slate-700 transition-colors"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                    Remove
+                  </button>
+                </div>
+              ) : (
+                <div
+                  onDragOver={(e) => { e.preventDefault(); setCoverImageDragging(true); }}
+                  onDragLeave={() => setCoverImageDragging(false)}
+                  onDrop={(e) => { e.preventDefault(); setCoverImageDragging(false); handleImageFile(e.dataTransfer.files[0]); }}
+                  onClick={() => imageInputRef.current?.click()}
+                  className={`flex flex-col items-center justify-center gap-2 w-full h-36 border-2 border-dashed rounded-xl cursor-pointer transition-colors ${coverImageDragging ? 'border-green-500 bg-green-50 dark:bg-green-900/10' : 'border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 hover:border-green-400 hover:bg-green-50/50 dark:hover:bg-green-900/10'}`}
+                >
+                  <svg className="w-8 h-8 text-gray-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                  <p className="text-sm text-gray-500 dark:text-slate-400">Drag & drop or <span className="text-green-600 dark:text-green-400 font-semibold">browse</span></p>
+                  <p className="text-xs text-gray-400 dark:text-slate-500">PNG, JPG, WEBP</p>
+                  <input
+                    ref={imageInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => handleImageFile(e.target.files[0])}
+                  />
+                </div>
+              )}
             </div>
 
             <div>

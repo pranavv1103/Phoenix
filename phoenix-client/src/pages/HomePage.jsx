@@ -343,10 +343,12 @@ export default function HomePage() {
                       </div>
                     </div>
 
-                    <div className={`hidden sm:flex flex-shrink-0 w-20 h-20 ${authorColor} rounded-xl items-center justify-center text-white opacity-80 group-hover:opacity-100 transition-opacity select-none overflow-hidden`}>
-                      {activeTab === 'trending'
-                        ? <span className="text-3xl font-black tabular-nums">{String(currentPage * pageSize + idx + 1).padStart(2, '0')}</span>
-                        : <span className="text-4xl font-black">{post.title?.charAt(0)?.toUpperCase()}</span>
+                    <div className={`hidden sm:flex flex-shrink-0 w-20 h-20 ${!post.coverImageUrl ? authorColor : ''} rounded-xl items-center justify-center text-white opacity-80 group-hover:opacity-100 transition-opacity select-none overflow-hidden`}>
+                      {post.coverImageUrl
+                        ? <img src={post.coverImageUrl} alt={post.title} className="w-full h-full object-cover" />
+                        : activeTab === 'trending'
+                          ? <span className="text-3xl font-black tabular-nums">{String(currentPage * pageSize + idx + 1).padStart(2, '0')}</span>
+                          : <span className="text-4xl font-black">{post.title?.charAt(0)?.toUpperCase()}</span>
                       }
                     </div>
                   </article>

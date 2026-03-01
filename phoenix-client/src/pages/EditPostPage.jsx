@@ -16,6 +16,9 @@ export default function EditPostPage() {
   const [price, setPrice] = useState('');
   const [tags, setTags] = useState([]);
   const [tagInput, setTagInput] = useState('');
+  const [coverImageUrl, setCoverImageUrl] = useState('');
+  const [coverImageDragging, setCoverImageDragging] = useState(false);
+  const imageInputRef = useRef(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -26,6 +29,17 @@ export default function EditPostPage() {
   const autoSaveTimer = useRef(null);
   const hasUnsavedChanges = useRef(false);
   const initialData = useRef({});
+
+  const handleImageFile = useCallback((file) => {
+    if (!file || !file.type.startsWith('image/')) return;
+    if (file.size > 3 * 1024 * 1024) {
+      alert('Image must be smaller than 3 MB');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (e) => setCoverImageUrl(e.target.result);
+    reader.readAsDataURL(file);
+  }, []);
 
   const addTag = (raw) => {
     const tag = raw.trim().toLowerCase().replace(/[^a-z0-9-]/g, '');
@@ -52,7 +66,7 @@ export default function EditPostPage() {
     if (!title && !content) return;
     
     setAutoSaveStatus('saving');
-    const data = { title, content, isPremium, price, tags, timestamp: Date.now() };
+    const data = { title, content, isPremium, price, tags, coverImageUrl, timestamp: Date.now() };
     localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(data));
     
     // Short delay so the spinner animates before showing 'saved'
@@ -62,7 +76,7 @@ export default function EditPostPage() {
       hasUnsavedChanges.current = false;
       // Note: we intentionally do NOT clear status — 'Saved at HH:MM' stays visible
     }, 300);
-  }, [id, title, content, isPremium, price, tags]);
+  }, [id, title, content, isPremium, price, tags, coverImageUrl]);
 
   // Setup auto-save interval
   useEffect(() => {
@@ -81,7 +95,7 @@ export default function EditPostPage() {
     return () => {
       if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
     };
-  }, [title, content, isPremium, price, tags, post, autoSave]);
+  }, [title, content, isPremium, price, tags, coverImageUrl, post, autoSave]);
 
   // Track changes
   useEffect(() => {
@@ -91,10 +105,11 @@ export default function EditPostPage() {
         content !== initialData.current.content ||
         isPremium !== initialData.current.isPremium ||
         price !== initialData.current.price ||
-        JSON.stringify(tags) !== JSON.stringify(initialData.current.tags);
+        JSON.stringify(tags) !== JSON.stringify(initialData.current.tags) ||
+        coverImageUrl !== initialData.current.coverImageUrl;
       hasUnsavedChanges.current = changed;
     }
-  }, [title, content, isPremium, price, tags, post]);
+  }, [title, content, isPremium, price, tags, coverImageUrl, post]);
 
   useEffect(() => {
     const fetchPost = async () => {
@@ -119,7 +134,8 @@ export default function EditPostPage() {
           content: postContent,
           isPremium: postIsPremium,
           price: postPrice,
-          tags: postTags
+          tags: postTags,
+          coverImageUrl: postData.coverImageUrl || ''
         };
         
         // Check for auto-saved data
@@ -136,6 +152,8 @@ export default function EditPostPage() {
               setIsPremium(data.isPremium ?? postIsPremium);
               setPrice(data.price || postPrice);
               setTags(data.tags || postTags);
+              if (data.coverImageUrl !== undefined) setCoverImageUrl(data.coverImageUrl);
+              else setCoverImageUrl(postData.coverImageUrl || '');
               setLastSaved(new Date(data.timestamp));
             } else {
               localStorage.removeItem(AUTOSAVE_KEY);
@@ -144,6 +162,7 @@ export default function EditPostPage() {
               setIsPremium(postIsPremium);
               setPrice(postPrice);
               setTags(postTags);
+              setCoverImageUrl(postData.coverImageUrl || '');
             }
           } catch {
             localStorage.removeItem(AUTOSAVE_KEY);
@@ -152,6 +171,7 @@ export default function EditPostPage() {
             setIsPremium(postIsPremium);
             setPrice(postPrice);
             setTags(postTags);
+            setCoverImageUrl(postData.coverImageUrl || '');
           }
         } else {
           setTitle(postTitle);
@@ -159,6 +179,7 @@ export default function EditPostPage() {
           setIsPremium(postIsPremium);
           setPrice(postPrice);
           setTags(postTags);
+          setCoverImageUrl(postData.coverImageUrl || '');
         }
         setPostStatus(postData.status || 'PUBLISHED');
       } catch {
@@ -176,7 +197,7 @@ export default function EditPostPage() {
       setSubmitting(true);
       setError('');
       const priceInPaise = isPremium ? Math.round(parseFloat(price || '0') * 100) : 0;
-      await client.put(`/api/posts/${id}`, { title, content, isPremium, price: priceInPaise, tags, saveAsDraft });
+      await client.put(`/api/posts/${id}`, { title, content, isPremium, price: priceInPaise, tags, saveAsDraft, coverImageUrl: coverImageUrl || null });
       const AUTOSAVE_KEY = `phoenix_edit_post_${id}_autosave`;
       localStorage.removeItem(AUTOSAVE_KEY); // Clear auto-save on success
       navigate(`/posts/${id}`);
@@ -272,6 +293,46 @@ export default function EditPostPage() {
                 className="w-full px-4 py-3 text-sm border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500 rounded-xl focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100 dark:focus:ring-green-900/20 transition-all"
                 required
               />
+            </div>
+
+            {/* Cover Image */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">
+                Cover Image
+                <span className="ml-2 font-normal text-gray-400 dark:text-slate-500 text-xs">(optional — max 3 MB)</span>
+              </label>
+              {coverImageUrl ? (
+                <div className="relative rounded-xl overflow-hidden border border-gray-200 dark:border-slate-700">
+                  <img src={coverImageUrl} alt="Cover preview" className="w-full h-48 object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => setCoverImageUrl('')}
+                    className="absolute top-2 right-2 flex items-center gap-1 px-3 py-1.5 text-xs font-semibold bg-white/90 dark:bg-slate-800/90 text-gray-700 dark:text-slate-200 rounded-full shadow hover:bg-white dark:hover:bg-slate-700 transition-colors"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                    Remove
+                  </button>
+                </div>
+              ) : (
+                <div
+                  onDragOver={(e) => { e.preventDefault(); setCoverImageDragging(true); }}
+                  onDragLeave={() => setCoverImageDragging(false)}
+                  onDrop={(e) => { e.preventDefault(); setCoverImageDragging(false); handleImageFile(e.dataTransfer.files[0]); }}
+                  onClick={() => imageInputRef.current?.click()}
+                  className={`flex flex-col items-center justify-center gap-2 w-full h-36 border-2 border-dashed rounded-xl cursor-pointer transition-colors ${coverImageDragging ? 'border-green-500 bg-green-50 dark:bg-green-900/10' : 'border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 hover:border-green-400 hover:bg-green-50/50 dark:hover:bg-green-900/10'}`}
+                >
+                  <svg className="w-8 h-8 text-gray-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                  <p className="text-sm text-gray-500 dark:text-slate-400">Drag & drop or <span className="text-green-600 dark:text-green-400 font-semibold">browse</span></p>
+                  <p className="text-xs text-gray-400 dark:text-slate-500">PNG, JPG, WEBP</p>
+                  <input
+                    ref={imageInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => handleImageFile(e.target.files[0])}
+                  />
+                </div>
+              )}
             </div>
 
             <div>

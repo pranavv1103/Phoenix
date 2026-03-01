@@ -35,4 +35,5 @@ public class PostResponse {
     private List<String> tags;
     private String status;
     private boolean bookmarkedByCurrentUser;
+    private String coverImageUrl;
 }

@@ -54,6 +54,9 @@ public class Post {
     @Builder.Default
     private PostStatus status = PostStatus.PUBLISHED;
 
+    @Column(columnDefinition = "TEXT")
+    private String coverImageUrl;
+
     @Column(nullable = false)
     @Builder.Default
     private boolean isPremium = false;

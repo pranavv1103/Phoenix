@@ -164,6 +164,7 @@ public class PostService {
                 .price(request.getPrice())
                 .author(author)
                 .status(request.isSaveAsDraft() ? PostStatus.DRAFT : PostStatus.PUBLISHED)
+                .coverImageUrl(request.getCoverImageUrl())
                 .build();
 
         if (request.getTags() != null && !request.getTags().isEmpty()) {
@@ -188,6 +189,9 @@ public class PostService {
         post.setPremium(request.isPremium());
         post.setPrice(request.getPrice());
         post.setStatus(request.isSaveAsDraft() ? PostStatus.DRAFT : PostStatus.PUBLISHED);
+        if (request.getCoverImageUrl() != null) {
+            post.setCoverImageUrl(request.getCoverImageUrl());
+        }
 
         post.getTags().clear();
         if (request.getTags() != null && !request.getTags().isEmpty()) {
@@ -340,6 +344,7 @@ public class PostService {
                 .tags(tagNames)
                 .status(post.getStatus() != null ? post.getStatus().name() : "PUBLISHED")
                 .bookmarkedByCurrentUser(bookmarkedByCurrentUser)
+                .coverImageUrl(post.getCoverImageUrl())
                 .build();
     }
 
