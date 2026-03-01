@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Data
@@ -19,4 +20,6 @@ public class CommentResponse {
     private String authorEmail;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private UUID parentId;
+    private List<CommentResponse> replies;
 }

@@ -40,7 +40,7 @@ public class CommentService {
         }
 
         PageRequest pageable = PageRequest.of(page, size, Sort.by("createdAt").ascending());
-        Page<Comment> commentPage = commentRepository.findByPostIdOrderByCreatedAtAsc(postId, pageable);
+        Page<Comment> commentPage = commentRepository.findByPostIdAndParentIsNullOrderByCreatedAtAsc(postId, pageable);
 
         List<CommentResponse> content = commentPage.getContent().stream()
                 .map(this::convertToResponse)
@@ -65,13 +65,18 @@ public class CommentService {
         User author = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
-        Comment comment = Comment.builder()
+        Comment.CommentBuilder builder = Comment.builder()
                 .content(request.getContent())
                 .post(post)
-                .author(author)
-                .build();
+                .author(author);
 
-        Comment savedComment = commentRepository.save(Objects.requireNonNull(comment));
+        if (request.getParentId() != null) {
+            Comment parent = commentRepository.findById(request.getParentId())
+                    .orElseThrow(() -> new RuntimeException("Parent comment not found"));
+            builder.parent(parent);
+        }
+
+        Comment savedComment = commentRepository.save(Objects.requireNonNull(builder.build()));
         return convertToResponse(savedComment);
     }
 
@@ -102,6 +107,20 @@ public class CommentService {
     }
 
     private CommentResponse convertToResponse(Comment comment) {
+        List<CommentResponse> replies = (comment.getReplies() == null) ? List.of()
+                : comment.getReplies().stream()
+                        .map(r -> CommentResponse.builder()
+                                .id(r.getId())
+                                .content(r.getContent())
+                                .authorName(r.getAuthor().getName())
+                                .authorEmail(r.getAuthor().getEmail())
+                                .createdAt(r.getCreatedAt())
+                                .updatedAt(r.getUpdatedAt())
+                                .parentId(comment.getId())
+                                .replies(List.of())
+                                .build())
+                        .collect(Collectors.toList());
+
         return CommentResponse.builder()
                 .id(comment.getId())
                 .content(comment.getContent())
@@ -109,6 +128,8 @@ public class CommentService {
                 .authorEmail(comment.getAuthor().getEmail())
                 .createdAt(comment.getCreatedAt())
                 .updatedAt(comment.getUpdatedAt())
+                .parentId(comment.getParent() != null ? comment.getParent().getId() : null)
+                .replies(replies)
                 .build();
     }
 }

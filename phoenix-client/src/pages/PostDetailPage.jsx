@@ -31,6 +31,8 @@ export default function PostDetailPage() {
   const [showShare, setShowShare] = useState(false);
   const [editingCommentId, setEditingCommentId] = useState(null);
   const [editingContent, setEditingContent] = useState('');
+  const [replyingToId, setReplyingToId] = useState(null);
+  const [replyText, setReplyText] = useState('');
   const [commentPage, setCommentPage] = useState(null);
   const [commentPageNum, setCommentPageNum] = useState(0);
   const [commentsLoading, setCommentsLoading] = useState(false);
@@ -180,6 +182,16 @@ export default function PostDetailPage() {
       setEditingContent('');
       fetchComments(commentPageNum);
     } catch { alert('Failed to update comment'); }
+  };
+
+  const handleReplySubmit = async (parentId) => {
+    if (!replyText.trim()) return;
+    try {
+      await client.post(`/api/posts/${id}/comments`, { content: replyText, parentId });
+      setReplyText('');
+      setReplyingToId(null);
+      fetchComments(commentPageNum);
+    } catch { alert('Failed to post reply'); }
   };
 
   if (loading) {
@@ -565,6 +577,93 @@ export default function PostDetailPage() {
                         </div>
                       ) : (
                         <p className="ml-9 text-sm text-gray-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed">{comment.content}</p>
+                      )}
+
+                      {/* Reply button */}
+                      {isAuthenticated && editingCommentId !== comment.id && (
+                        <div className="ml-9 mt-2">
+                          <button
+                            onClick={() => setReplyingToId(replyingToId === comment.id ? null : comment.id)}
+                            className="text-xs font-medium text-gray-400 dark:text-slate-500 hover:text-green-600 dark:hover:text-green-400 transition-colors"
+                          >
+                            {replyingToId === comment.id ? 'Cancel' : `↩ Reply${comment.replies?.length ? ` · ${comment.replies.length}` : ''}`}
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Inline reply input */}
+                      {replyingToId === comment.id && (
+                        <div className="ml-9 mt-3">
+                          <div className="flex gap-2">
+                            <textarea
+                              autoFocus
+                              value={replyText}
+                              onChange={(e) => setReplyText(e.target.value)}
+                              placeholder={`Reply to ${commentAuthorName}…`}
+                              className="flex-1 px-3 py-2 text-sm border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500 rounded-xl resize-none focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100 dark:focus:ring-green-900/20"
+                              rows="2"
+                            />
+                            <button
+                              onClick={() => handleReplySubmit(comment.id)}
+                              disabled={!replyText.trim()}
+                              className="self-end px-3 py-2 text-xs font-semibold bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                            >
+                              Reply
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Nested replies */}
+                      {comment.replies && comment.replies.length > 0 && (
+                        <div className="ml-9 mt-3 space-y-3 border-l-2 border-gray-100 dark:border-slate-800 pl-4">
+                          {comment.replies.map((reply) => {
+                            const replyAuthorName = (reply.authorName || 'Unknown User').trim();
+                            const replyColor = colorFromString(replyAuthorName);
+                            return (
+                              <div key={reply.id} className="pt-3 first:pt-0">
+                                <div className="flex items-center gap-2 mb-1.5">
+                                  <div className={`w-6 h-6 ${replyColor} rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0`}>
+                                    {replyAuthorName.charAt(0).toUpperCase()}
+                                  </div>
+                                  <Link
+                                    to={`/profile/${encodeURIComponent(replyAuthorName)}`}
+                                    className="text-sm font-semibold text-gray-900 dark:text-white hover:text-green-600 dark:hover:text-green-400 transition-colors"
+                                  >
+                                    {replyAuthorName}
+                                  </Link>
+                                  <span className="text-xs text-gray-400 dark:text-slate-500">{formatRelativeTime(reply.createdAt)}</span>
+                                  {isAuthenticated && user?.email === reply.authorEmail && (
+                                    <div className="ml-auto flex items-center gap-1">
+                                      <button onClick={() => handleEditComment(reply)} className="p-1 rounded text-gray-400 hover:text-blue-500 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors" title="Edit">
+                                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                                      </button>
+                                      <button onClick={() => handleDeleteComment(reply.id)} className="p-1 rounded text-gray-400 hover:text-red-500 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors" title="Delete">
+                                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
+                                {editingCommentId === reply.id ? (
+                                  <div className="ml-8">
+                                    <textarea
+                                      value={editingContent}
+                                      onChange={(e) => setEditingContent(e.target.value)}
+                                      className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-slate-100 rounded-lg resize-none focus:outline-none focus:border-green-500"
+                                      rows="2"
+                                    />
+                                    <div className="flex gap-2 mt-1.5">
+                                      <button onClick={() => handleUpdateComment(reply.id)} className="px-3 py-1.5 text-xs font-semibold bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg">Save</button>
+                                      <button onClick={() => { setEditingCommentId(null); setEditingContent(''); }} className="px-3 py-1.5 text-xs font-semibold bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-300 rounded-lg">Cancel</button>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <p className="ml-8 text-sm text-gray-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed">{reply.content}</p>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
                       )}
                     </div>
                   );

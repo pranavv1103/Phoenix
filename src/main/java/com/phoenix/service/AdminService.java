@@ -55,6 +55,7 @@ public class AdminService {
         Post post = postRepository.findById(Objects.requireNonNull(postId))
                 .orElseThrow(() -> new PostNotFoundException("Post not found with id: " + postId));
         likeRepository.deleteByPostId(postId);
+        commentRepository.deleteRepliesByPostId(postId);
         commentRepository.deleteByPostId(postId);
         bookmarkRepository.deleteByPostId(postId);
         paymentRepository.deleteByPostId(postId);

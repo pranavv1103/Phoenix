@@ -217,6 +217,7 @@ public class PostService {
         paymentRepository.deleteByPostId(id);
         postViewRepository.deleteByPostId(id);
         likeRepository.deleteByPostId(id);
+        commentRepository.deleteRepliesByPostId(id);
         commentRepository.deleteByPostId(id);
         postRepository.delete(post);
     }
