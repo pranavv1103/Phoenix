@@ -21,6 +21,8 @@ export default function ProfilePage() {
   const [drafts, setDrafts] = useState([]);
   const [bookmarks, setBookmarks] = useState([]);
   const [activeTab, setActiveTab] = useState('posts');
+  const [emailDigestEnabled, setEmailDigestEnabled] = useState(true);
+  const [digestLoading, setDigestLoading] = useState(false);
 
   const isOwnProfile = user?.name?.trim() === username?.trim();
 
@@ -47,12 +49,31 @@ export default function ProfilePage() {
     client.get('/api/bookmarks').then(res => setBookmarks(res.data.data || [])).catch(() => {});
   }, [isOwnProfile]);
 
+  useEffect(() => {
+    if (!isOwnProfile) return;
+    client.get('/api/users/digest-preferences')
+      .then(res => setEmailDigestEnabled(res.data.data))
+      .catch(() => {});
+  }, [isOwnProfile]);
+
   const handleFollow = async () => {
     try {
       const res = await client.post(`/api/users/${encodeURIComponent(username?.trim())}/follow`);
       const nowFollowing = res.data.data;
       setProfile(prev => ({ ...prev, followedByCurrentUser: nowFollowing, followersCount: prev.followersCount + (nowFollowing ? 1 : -1) }));
     } catch (err) { console.error('Failed to toggle follow', err); }
+  };
+
+  const handleDigestToggle = async () => {
+    try {
+      setDigestLoading(true);
+      const res = await client.put(`/api/users/digest-preferences?enabled=${!emailDigestEnabled}`);
+      setEmailDigestEnabled(res.data.data);
+    } catch (err) {
+      console.error('Failed to update digest preferences', err);
+    } finally {
+      setDigestLoading(false);
+    }
   };
 
   if (loading) {
@@ -74,7 +95,7 @@ export default function ProfilePage() {
   }
 
   const avatarColor = colorFromString(profile.username || 'A');
-  const tabs = ['posts', ...(isOwnProfile ? ['saved', 'drafts', 'stats'] : [])];
+  const tabs = ['posts', ...(isOwnProfile ? ['saved', 'drafts', 'stats', 'settings'] : [])];
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-slate-950">
@@ -136,6 +157,7 @@ export default function ProfilePage() {
               {tab === 'saved' && `Saved (${bookmarks.length})`}
               {tab === 'drafts' && `Drafts (${drafts.length})`}
               {tab === 'stats' && '📊 Stats'}
+              {tab === 'settings' && '⚙️ Settings'}
             </button>
           ))}
         </div>
@@ -356,6 +378,67 @@ export default function ProfilePage() {
             </div>
           );
         })()}
+
+        {/* Settings tab */}
+        {activeTab === 'settings' && isOwnProfile && (
+          <div className="space-y-4">
+            {/* Email Digest Setting */}
+            <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl p-6">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-lg">📬</span>
+                    <h3 className="text-base font-semibold text-gray-900 dark:text-white">Weekly Email Digest</h3>
+                  </div>
+                  <p className="text-sm text-gray-600 dark:text-slate-400 leading-relaxed">
+                    Receive a curated weekly email with the top 5 most popular posts from the past week. Delivered every Monday at 9 AM.
+                  </p>
+                </div>
+                <button
+                  onClick={handleDigestToggle}
+                  disabled={digestLoading}
+                  className={`relative flex-shrink-0 w-12 h-7 rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 dark:focus:ring-offset-slate-900 ${
+                    emailDigestEnabled
+                      ? 'bg-green-600'
+                      : 'bg-gray-200 dark:bg-slate-700'
+                  } ${digestLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  aria-label="Toggle email digest"
+                >
+                  <span
+                    className={`inline-block w-5 h-5 bg-white rounded-full shadow transform transition-transform duration-200 mt-1 ${
+                      emailDigestEnabled ? 'translate-x-6' : 'translate-x-1'
+                    }`}
+                  />
+                </button>
+              </div>
+              {emailDigestEnabled && (
+                <div className="mt-4 pt-4 border-t border-gray-100 dark:border-slate-800">
+                  <div className="flex items-start gap-2 text-sm text-green-700 dark:text-green-400">
+                    <svg className="w-4 h-4 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>You're subscribed to weekly digests</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Info card */}
+            <div className="bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800/30 rounded-2xl p-5">
+              <div className="flex items-start gap-3">
+                <svg className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <div className="flex-1">
+                  <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-200 mb-1">About Email Digests</h4>
+                  <p className="text-sm text-blue-700 dark:text-blue-300/90 leading-relaxed">
+                    Stay updated with the best content from Phoenix without checking the site every day. Your digest includes post titles, author names, engagement metrics, and direct links.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
       </div>
     </div>

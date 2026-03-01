@@ -99,6 +99,25 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.success("Follow status retrieved", following));
     }
 
+    @GetMapping("/digest-preferences")
+    public ResponseEntity<ApiResponse<Boolean>> getDigestPreferences() {
+        String currentEmail = getCurrentUserEmail();
+        User user = userRepository.findByEmail(currentEmail)
+                .orElseThrow(() -> new PostNotFoundException("User not found"));
+        return ResponseEntity.ok(ApiResponse.success("Digest preferences retrieved", user.isEmailDigestEnabled()));
+    }
+
+    @PutMapping("/digest-preferences")
+    public ResponseEntity<ApiResponse<Boolean>> updateDigestPreferences(@RequestParam boolean enabled) {
+        String currentEmail = getCurrentUserEmail();
+        User user = userRepository.findByEmail(currentEmail)
+                .orElseThrow(() -> new PostNotFoundException("User not found"));
+        user.setEmailDigestEnabled(enabled);
+        userRepository.save(user);
+        String message = enabled ? "Weekly digest enabled" : "Weekly digest disabled";
+        return ResponseEntity.ok(ApiResponse.success(message, enabled));
+    }
+
     private String getCurrentUserEmail() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         return auth.getName();

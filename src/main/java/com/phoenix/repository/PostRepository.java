@@ -85,4 +85,12 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
         countQuery = "select count(p) from Post p where p.status = 'PUBLISHED' and p.author.id in :authorIds"
     )
     Page<Post> findByAuthorIdIn(@Param("authorIds") List<UUID> authorIds, Pageable pageable);
+
+    @Query(
+        value = "select p from Post p left join Like l on l.post = p " +
+            "where p.status = 'PUBLISHED' and p.createdAt >= :since " +
+            "group by p order by count(l) desc, p.viewCount desc, p.createdAt desc",
+        countQuery = "select count(p) from Post p where p.status = 'PUBLISHED' and p.createdAt >= :since"
+    )
+    List<Post> findTopPostsSince(@Param("since") java.time.LocalDateTime since, Pageable pageable);
 }
