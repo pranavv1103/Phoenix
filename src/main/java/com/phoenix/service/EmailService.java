@@ -34,8 +34,8 @@ public class EmailService {
             mailSender.send(message);
             log.info("Password reset email sent to {}", toEmail);
         } catch (Exception e) {
-            log.error("Failed to send password reset email to {}: {}", toEmail, e.getMessage());
-            throw new RuntimeException("Failed to send reset email. Please try again later.");
+            log.error("Failed to send password reset email to {}: {}", toEmail, e.getMessage(), e);
+            throw new RuntimeException("Failed to send reset email: " + e.getMessage(), e);
         }
     }
 }

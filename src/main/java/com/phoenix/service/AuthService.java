@@ -104,7 +104,15 @@ public class AuthService {
             passwordResetTokenRepository.save(Objects.requireNonNull(resetToken));
 
             String resetLink = frontendUrl + "/reset-password?token=" + rawToken;
-            emailService.sendPasswordResetEmail(user.getEmail(), resetLink);
+            try {
+                emailService.sendPasswordResetEmail(user.getEmail(), resetLink);
+            } catch (Exception e) {
+                // Log the real SMTP error server-side but do not propagate to the caller.
+                // The endpoint always returns HTTP 200 to prevent email enumeration attacks.
+                org.slf4j.LoggerFactory.getLogger(AuthService.class)
+                        .error("[SMTP] Failed to send password reset email to {} (userId={}): {}",
+                                user.getEmail(), user.getId(), e.getMessage(), e);
+            }
         });
     }
 
