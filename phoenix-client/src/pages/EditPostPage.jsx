@@ -63,10 +63,18 @@ export default function EditPostPage() {
 
   // Setup auto-save interval
   useEffect(() => {
-    if (hasUnsavedChanges.current && post) {
-      if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
-      autoSaveTimer.current = setTimeout(() => autoSave(), AUTOSAVE_INTERVAL);
-    }
+    if (!post) return; // Only auto-save after post is loaded
+    
+    // Clear any existing timer
+    if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
+    
+    // Set new timer - autoSave() will check if content exists
+    autoSaveTimer.current = setTimeout(() => {
+      if (hasUnsavedChanges.current) {
+        autoSave();
+      }
+    }, AUTOSAVE_INTERVAL);
+    
     return () => {
       if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
     };
