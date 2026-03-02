@@ -259,7 +259,7 @@ public class PostService {
         likeRepository.deleteByPostId(id);
         commentRepository.deleteRepliesByPostId(id);
         commentRepository.deleteByPostId(id);
-        postRepository.delete(post);
+        postRepository.delete(Objects.requireNonNull(post));
     }
 
     @Transactional(readOnly = true)

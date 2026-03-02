@@ -96,7 +96,7 @@ public class SeriesService {
 
         // Delete each post (and its likes, comments, bookmarks, etc.) then delete series
         postRepository.findBySeries_IdOrderBySeriesOrder(id)
-                .forEach(post -> postService.deletePostInternal(post.getId()));
+                .forEach(post -> postService.deletePostInternal(Objects.requireNonNull(post.getId())));
 
         seriesRepository.delete(series);
     }

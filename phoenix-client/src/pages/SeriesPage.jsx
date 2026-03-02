@@ -52,7 +52,10 @@ export default function SeriesPage() {
     );
   }
 
-  const isOwner = user?.email === series.authorEmail;
+  const isOwner =
+    !!user &&
+    !!series.authorEmail &&
+    user.email?.toLowerCase() === series.authorEmail?.toLowerCase();
 
   const handleDelete = async () => {
     if (!deleteMode) return;
@@ -83,26 +86,13 @@ export default function SeriesPage() {
 
         {/* Series header */}
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-sm p-6 sm:p-8 mb-6">
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex items-center gap-2 mb-3">
-              <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 text-xs font-bold rounded-full border border-indigo-200 dark:border-indigo-700/50 uppercase tracking-wide">
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                </svg>
-                Series
-              </span>
-            </div>
-            {isOwner && (
-              <button
-                onClick={() => { setDeleteMode(null); setShowDeleteModal(true); }}
-                className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40 border border-red-200 dark:border-red-800/50 rounded-lg transition-colors"
-              >
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-                Delete Series
-              </button>
-            )}
+          <div className="flex items-center gap-2 mb-3">
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 text-xs font-bold rounded-full border border-indigo-200 dark:border-indigo-700/50 uppercase tracking-wide">
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+              </svg>
+              Series
+            </span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-2">{series.name}</h1>
           {series.description && (
@@ -113,6 +103,20 @@ export default function SeriesPage() {
             <span>·</span>
             <span>{series.postCount} {series.postCount === 1 ? 'post' : 'posts'}</span>
           </div>
+
+          {isOwner && (
+            <div className="mt-5 pt-5 border-t border-gray-100 dark:border-slate-800">
+              <button
+                onClick={() => { setDeleteMode(null); setShowDeleteModal(true); }}
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40 border border-red-200 dark:border-red-700/50 rounded-xl transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+                Delete Series
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Posts list */}
