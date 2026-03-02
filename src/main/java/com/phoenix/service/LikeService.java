@@ -2,6 +2,7 @@ package com.phoenix.service;
 
 import com.phoenix.dto.LikeResponse;
 import com.phoenix.entity.Like;
+import com.phoenix.entity.NotificationType;
 import com.phoenix.entity.Post;
 import com.phoenix.entity.User;
 import com.phoenix.exception.PostNotFoundException;
@@ -24,6 +25,7 @@ public class LikeService {
     private final LikeRepository likeRepository;
     private final PostRepository postRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
     @Transactional
     public LikeResponse toggleLike(UUID postId, String userEmail) {
@@ -48,6 +50,14 @@ public class LikeService {
                     .build();
             likeRepository.save(Objects.requireNonNull(like));
             long newCount = likeRepository.countByPost(post);
+            notificationService.createNotification(
+                    post.getAuthor(),
+                    NotificationType.LIKE,
+                    user.getName(),
+                    user.getEmail(),
+                    user.getName() + " liked your post \"" + post.getTitle() + "\"",
+                    post.getId(),
+                    post.getTitle());
             return LikeResponse.builder()
                     .likeCount(newCount)
                     .likedByCurrentUser(true)

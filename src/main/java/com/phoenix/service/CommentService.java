@@ -4,6 +4,7 @@ import com.phoenix.dto.CommentRequest;
 import com.phoenix.dto.CommentResponse;
 import com.phoenix.dto.PagedResponse;
 import com.phoenix.entity.Comment;
+import com.phoenix.entity.NotificationType;
 import com.phoenix.entity.Post;
 import com.phoenix.entity.User;
 import com.phoenix.exception.PostNotFoundException;
@@ -32,6 +33,7 @@ public class CommentService {
     private final CommentRepository commentRepository;
     private final PostRepository postRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
     @Transactional(readOnly = true)
     public PagedResponse<CommentResponse> getCommentsByPostId(@NonNull UUID postId, int page, int size) {
@@ -70,13 +72,35 @@ public class CommentService {
                 .post(post)
                 .author(author);
 
+        Comment parent = null;
         if (request.getParentId() != null) {
-            Comment parent = commentRepository.findById(Objects.requireNonNull(request.getParentId()))
+            parent = commentRepository.findById(Objects.requireNonNull(request.getParentId()))
                     .orElseThrow(() -> new RuntimeException("Parent comment not found"));
             builder.parent(parent);
         }
 
         Comment savedComment = commentRepository.save(Objects.requireNonNull(builder.build()));
+
+        if (parent != null) {
+            notificationService.createNotification(
+                    parent.getAuthor(),
+                    NotificationType.REPLY,
+                    author.getName(),
+                    author.getEmail(),
+                    author.getName() + " replied to your comment",
+                    post.getId(),
+                    post.getTitle());
+        } else {
+            notificationService.createNotification(
+                    post.getAuthor(),
+                    NotificationType.COMMENT,
+                    author.getName(),
+                    author.getEmail(),
+                    author.getName() + " commented on your post \"" + post.getTitle() + "\"",
+                    post.getId(),
+                    post.getTitle());
+        }
+
         return convertToResponse(savedComment);
     }
 

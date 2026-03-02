@@ -1,6 +1,7 @@
 package com.phoenix.service;
 
 import com.phoenix.entity.Follow;
+import com.phoenix.entity.NotificationType;
 import com.phoenix.entity.User;
 import com.phoenix.exception.PostNotFoundException;
 import com.phoenix.repository.FollowRepository;
@@ -15,6 +16,7 @@ public class FollowService {
 
     private final FollowRepository followRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
     /**
      * Toggle follow on a user. Returns true if now following, false if unfollowed.
@@ -36,6 +38,14 @@ public class FollowService {
             return false;
         } else {
             followRepository.save(Follow.builder().follower(follower).following(following).build());
+            notificationService.createNotification(
+                    following,
+                    NotificationType.FOLLOW,
+                    follower.getName(),
+                    follower.getEmail(),
+                    follower.getName() + " started following you",
+                    null,
+                    null);
             return true;
         }
     }
