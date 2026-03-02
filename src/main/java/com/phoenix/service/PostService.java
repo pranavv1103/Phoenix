@@ -162,7 +162,7 @@ public class PostService {
 
         Series series = null;
         if (request.getSeriesId() != null) {
-            series = seriesRepository.findById(request.getSeriesId()).orElse(null);
+            series = seriesRepository.findById(Objects.requireNonNull(request.getSeriesId())).orElse(null);
         }
 
         Post post = Post.builder()
@@ -210,7 +210,7 @@ public class PostService {
 
         // Update series
         if (request.getSeriesId() != null) {
-            Series series = seriesRepository.findById(request.getSeriesId()).orElse(null);
+            Series series = seriesRepository.findById(Objects.requireNonNull(request.getSeriesId())).orElse(null);
             post.setSeries(series);
         } else {
             post.setSeries(null);
@@ -236,6 +236,23 @@ public class PostService {
             throw new UnauthorizedException("You are not authorized to delete this post");
         }
 
+        bookmarkRepository.deleteByPostId(id);
+        paymentRepository.deleteByPostId(id);
+        postViewRepository.deleteByPostId(id);
+        likeRepository.deleteByPostId(id);
+        commentRepository.deleteRepliesByPostId(id);
+        commentRepository.deleteByPostId(id);
+        postRepository.delete(post);
+    }
+
+    /**
+     * Internal delete — bypasses author/admin check. Used by SeriesService when
+     * deleting a whole series (series ownership is verified at that level).
+     */
+    @Transactional
+    public void deletePostInternal(@NonNull UUID id) {
+        Post post = postRepository.findById(Objects.requireNonNull(id))
+                .orElseThrow(() -> new PostNotFoundException("Post not found with id: " + id));
         bookmarkRepository.deleteByPostId(id);
         paymentRepository.deleteByPostId(id);
         postViewRepository.deleteByPostId(id);
@@ -348,11 +365,12 @@ public class PostService {
         String seriesName = null;
         int seriesOrder = 0;
         int seriesSize = 0;
-        if (post.getSeries() != null) {
-            seriesId = post.getSeries().getId();
-            seriesName = post.getSeries().getName();
+        Series postSeries = post.getSeries();
+        if (postSeries != null) {
+            seriesId = postSeries.getId();
+            seriesName = postSeries.getName();
             seriesOrder = post.getSeriesOrder();
-            seriesSize = (int) postRepository.countBySeries_Id(seriesId);
+            seriesSize = (int) postRepository.countBySeries_Id(Objects.requireNonNull(seriesId));
         }
 
         return PostResponse.builder()

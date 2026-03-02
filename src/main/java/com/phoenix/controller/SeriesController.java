@@ -52,9 +52,15 @@ public class SeriesController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<ApiResponse<Void>> deleteSeries(@PathVariable UUID id) {
+    public ResponseEntity<ApiResponse<Void>> deleteSeries(
+            @PathVariable UUID id,
+            @RequestParam(defaultValue = "false") boolean deletePosts) {
         String email = getCurrentUserEmail();
-        seriesService.deleteSeries(id, email);
+        if (deletePosts) {
+            seriesService.deleteSeriesWithPosts(id, email);
+        } else {
+            seriesService.deleteSeries(id, email);
+        }
         return ResponseEntity.ok(ApiResponse.success("Series deleted", null));
     }
 

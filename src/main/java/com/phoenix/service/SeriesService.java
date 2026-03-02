@@ -3,6 +3,7 @@ package com.phoenix.service;
 import com.phoenix.dto.PostResponse;
 import com.phoenix.dto.SeriesRequest;
 import com.phoenix.dto.SeriesResponse;
+import java.util.Objects;
 import com.phoenix.entity.Series;
 import com.phoenix.entity.User;
 import com.phoenix.exception.UnauthorizedException;
@@ -28,6 +29,7 @@ public class SeriesService {
     private final PostService postService;
 
     @Transactional
+    @SuppressWarnings("null")
     public SeriesResponse createSeries(SeriesRequest request, String userEmail) {
         User author = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
@@ -52,7 +54,7 @@ public class SeriesService {
 
     @Transactional
     public SeriesResponse updateSeries(UUID id, SeriesRequest request, String userEmail) {
-        Series series = seriesRepository.findById(id)
+        Series series = seriesRepository.findById(Objects.requireNonNull(id))
                 .orElseThrow(() -> new RuntimeException("Series not found"));
 
         if (!series.getAuthor().getEmail().equals(userEmail)) {
@@ -66,19 +68,35 @@ public class SeriesService {
 
     @Transactional
     public void deleteSeries(UUID id, String userEmail) {
-        Series series = seriesRepository.findById(id)
+        Series series = seriesRepository.findById(Objects.requireNonNull(id))
                 .orElseThrow(() -> new RuntimeException("Series not found"));
 
         if (!series.getAuthor().getEmail().equals(userEmail)) {
             throw new UnauthorizedException("Not authorized to delete this series");
         }
 
-        // Unlink all posts from this series before deleting
+        // Unlink all posts — they become standalone posts
         postRepository.findBySeries_IdOrderBySeriesOrder(id).forEach(post -> {
             post.setSeries(null);
             post.setSeriesOrder(0);
             postRepository.save(post);
         });
+
+        seriesRepository.delete(series);
+    }
+
+    @Transactional
+    public void deleteSeriesWithPosts(UUID id, String userEmail) {
+        Series series = seriesRepository.findById(Objects.requireNonNull(id))
+                .orElseThrow(() -> new RuntimeException("Series not found"));
+
+        if (!series.getAuthor().getEmail().equals(userEmail)) {
+            throw new UnauthorizedException("Not authorized to delete this series");
+        }
+
+        // Delete each post (and its likes, comments, bookmarks, etc.) then delete series
+        postRepository.findBySeries_IdOrderBySeriesOrder(id)
+                .forEach(post -> postService.deletePostInternal(post.getId()));
 
         seriesRepository.delete(series);
     }
@@ -93,7 +111,7 @@ public class SeriesService {
 
     @Transactional(readOnly = true)
     public SeriesResponse getSeriesById(UUID id) {
-        Series series = seriesRepository.findById(id)
+        Series series = seriesRepository.findById(Objects.requireNonNull(id))
                 .orElseThrow(() -> new RuntimeException("Series not found"));
         return toResponse(series);
     }
