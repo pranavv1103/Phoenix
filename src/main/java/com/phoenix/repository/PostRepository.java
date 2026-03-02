@@ -93,4 +93,9 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
         countQuery = "select count(p) from Post p where p.status = 'PUBLISHED' and p.createdAt >= :since"
     )
     List<Post> findTopPostsSince(@Param("since") java.time.LocalDateTime since, Pageable pageable);
+
+    // Series helpers
+    List<Post> findBySeries_IdOrderBySeriesOrder(UUID seriesId);
+
+    long countBySeries_Id(UUID seriesId);
 }

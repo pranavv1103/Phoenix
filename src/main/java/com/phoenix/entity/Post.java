@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+import org.springframework.lang.Nullable;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -56,6 +57,15 @@ public class Post {
 
     @Column(columnDefinition = "TEXT")
     private String coverImageUrl;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "series_id", nullable = true)
+    @Nullable
+    private Series series;
+
+    @Column(columnDefinition = "integer default 0")
+    @Builder.Default
+    private int seriesOrder = 0;
 
     @Column(nullable = false)
     @Builder.Default

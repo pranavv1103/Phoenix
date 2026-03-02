@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Data
 @NoArgsConstructor
@@ -30,4 +31,8 @@ public class PostRequest {
     private boolean saveAsDraft = false;
 
     private String coverImageUrl;
+
+    private UUID seriesId;
+
+    private int seriesOrder = 0;
 }

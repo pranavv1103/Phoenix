@@ -38,6 +38,7 @@ export default function PostDetailPage() {
   const [commentsLoading, setCommentsLoading] = useState(false);
   const [readingProgress, setReadingProgress] = useState(0);
   const [relatedPosts, setRelatedPosts] = useState([]);
+  const [seriesPosts, setSeriesPosts] = useState([]);
   const COMMENTS_PAGE_SIZE = 10;
 
   const fetchPost = useCallback(async () => {
@@ -104,6 +105,13 @@ export default function PostDetailPage() {
       setRelatedPosts(res.data.data || []);
     }).catch(() => {});
   }, [id]);
+
+  useEffect(() => {
+    if (!post?.seriesId) { setSeriesPosts([]); return; }
+    client.get(`/api/series/${post.seriesId}/posts`)
+      .then(res => setSeriesPosts(res.data.data || []))
+      .catch(() => {});
+  }, [post?.seriesId]);
 
   const handlePay = async () => {
     if (!isAuthenticated) { navigate('/login'); return; }
@@ -244,6 +252,53 @@ export default function PostDetailPage() {
             )}
             <div className="p-6 sm:p-10">
             {/* Header */}
+            {/* Series navigation banner */}
+            {post.seriesId && (
+              (() => {
+                const currentIdx = seriesPosts.findIndex(p => p.id === post.id);
+                const prevPost = currentIdx > 0 ? seriesPosts[currentIdx - 1] : null;
+                const nextPost = currentIdx >= 0 && currentIdx < seriesPosts.length - 1 ? seriesPosts[currentIdx + 1] : null;
+                return (
+                  <div className="mb-6 rounded-xl border border-indigo-200 dark:border-indigo-700/50 bg-indigo-50 dark:bg-indigo-900/20 px-5 py-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <svg className="w-4 h-4 text-indigo-600 dark:text-indigo-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                      </svg>
+                      <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wide">Series</span>
+                    </div>
+                    <p className="text-sm font-bold text-gray-900 dark:text-white mb-1">
+                      <Link to={`/series/${post.seriesId}`} className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+                        {post.seriesName}
+                      </Link>
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-slate-400 mb-3">
+                      Part {post.seriesOrder} of {post.seriesSize}
+                    </p>
+                    <div className="flex gap-3">
+                      {prevPost ? (
+                        <Link
+                          to={`/posts/${prevPost.id}`}
+                          className="flex items-center gap-1.5 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline"
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+                          Previous: {prevPost.title.length > 35 ? prevPost.title.slice(0, 35) + '…' : prevPost.title}
+                        </Link>
+                      ) : <span />}
+                      {nextPost && (
+                        <Link
+                          to={`/posts/${nextPost.id}`}
+                          className="flex items-center gap-1.5 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline ml-auto"
+                        >
+                          Next: {nextPost.title.length > 35 ? nextPost.title.slice(0, 35) + '…' : nextPost.title}
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                        </Link>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()
+            )}
+
             <div className="mb-6">
               <div className="flex flex-wrap items-start gap-3 mb-4">
                 <h1 className="text-2xl sm:text-4xl font-bold text-gray-900 dark:text-white leading-tight">{post.title}</h1>

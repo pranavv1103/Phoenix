@@ -29,6 +29,14 @@ export default function EditPostPage() {
   const autoSaveTimer = useRef(null);
   const hasUnsavedChanges = useRef(false);
   const initialData = useRef({});
+  // Series state
+  const [seriesId, setSeriesId] = useState('');
+  const [seriesOrder, setSeriesOrder] = useState(1);
+  const [seriesList, setSeriesList] = useState([]);
+  const [showCreateSeries, setShowCreateSeries] = useState(false);
+  const [newSeriesName, setNewSeriesName] = useState('');
+  const [newSeriesDesc, setNewSeriesDesc] = useState('');
+  const [creatingSeries, setCreatingSeries] = useState(false);
 
   const handleImageFile = useCallback((file) => {
     if (!file || !file.type.startsWith('image/')) return;
@@ -81,6 +89,30 @@ export default function EditPostPage() {
   // Setup auto-save interval
   useEffect(() => {
     if (!post) return; // Only auto-save after post is loaded
+
+    // Fetch user's series once post is loaded
+    client.get('/api/series/my').then(res => setSeriesList(res.data.data || [])).catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [post?.id]);
+
+  const handleCreateSeries = async () => {
+    if (!newSeriesName.trim()) return;
+    setCreatingSeries(true);
+    try {
+      const res = await client.post('/api/series', { name: newSeriesName.trim(), description: newSeriesDesc.trim() });
+      const created = res.data.data;
+      setSeriesList(prev => [created, ...prev]);
+      setSeriesId(created.id);
+      setNewSeriesName('');
+      setNewSeriesDesc('');
+      setShowCreateSeries(false);
+    } catch { alert('Failed to create series'); }
+    finally { setCreatingSeries(false); }
+  };
+
+  // Setup auto-save interval (timer)
+  useEffect(() => {
+    if (!post) return;
     
     // Clear any existing timer
     if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
@@ -182,6 +214,9 @@ export default function EditPostPage() {
           setCoverImageUrl(postData.coverImageUrl || '');
         }
         setPostStatus(postData.status || 'PUBLISHED');
+        // Pre-fill series
+        setSeriesId(postData.seriesId || '');
+        setSeriesOrder(postData.seriesOrder || 1);
       } catch {
         setError('Failed to load post');
       } finally {
@@ -197,7 +232,7 @@ export default function EditPostPage() {
       setSubmitting(true);
       setError('');
       const priceInPaise = isPremium ? Math.round(parseFloat(price || '0') * 100) : 0;
-      await client.put(`/api/posts/${id}`, { title, content, isPremium, price: priceInPaise, tags, saveAsDraft, coverImageUrl: coverImageUrl || null });
+      await client.put(`/api/posts/${id}`, { title, content, isPremium, price: priceInPaise, tags, saveAsDraft, coverImageUrl: coverImageUrl || null, seriesId: seriesId || null, seriesOrder: seriesId ? seriesOrder : 0 });
       const AUTOSAVE_KEY = `phoenix_edit_post_${id}_autosave`;
       localStorage.removeItem(AUTOSAVE_KEY); // Clear auto-save on success
       navigate(`/posts/${id}`);
@@ -369,6 +404,78 @@ export default function EditPostPage() {
                   />
                 )}
               </div>
+            </div>
+
+            {/* Series */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">
+                Series
+                <span className="ml-2 font-normal text-gray-400 dark:text-slate-500 text-xs">(optional — group related posts)</span>
+              </label>
+              <div className="flex gap-3">
+                <select
+                  value={seriesId}
+                  onChange={e => setSeriesId(e.target.value)}
+                  className="flex-1 px-4 py-3 text-sm border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-slate-100 rounded-xl focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100 dark:focus:ring-green-900/20 transition-all"
+                >
+                  <option value="">No series</option>
+                  {seriesList.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                </select>
+                {seriesId && (
+                  <input
+                    type="number"
+                    min="1"
+                    value={seriesOrder}
+                    onChange={e => setSeriesOrder(parseInt(e.target.value) || 1)}
+                    className="w-24 px-3 py-3 text-sm border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-slate-100 rounded-xl focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100 dark:focus:ring-green-900/20 transition-all"
+                    placeholder="Part #"
+                    title="Part number in series"
+                  />
+                )}
+              </div>
+              {!showCreateSeries ? (
+                <button
+                  type="button"
+                  onClick={() => setShowCreateSeries(true)}
+                  className="mt-2 text-xs font-medium text-green-600 dark:text-green-400 hover:underline"
+                >
+                  + Create new series
+                </button>
+              ) : (
+                <div className="mt-3 p-4 bg-gray-50 dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 space-y-3">
+                  <input
+                    type="text"
+                    value={newSeriesName}
+                    onChange={e => setNewSeriesName(e.target.value)}
+                    placeholder="Series name (e.g. Learning React)"
+                    className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-lg focus:outline-none focus:border-green-500 transition-all"
+                  />
+                  <input
+                    type="text"
+                    value={newSeriesDesc}
+                    onChange={e => setNewSeriesDesc(e.target.value)}
+                    placeholder="Short description (optional)"
+                    className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-lg focus:outline-none focus:border-green-500 transition-all"
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={handleCreateSeries}
+                      disabled={creatingSeries || !newSeriesName.trim()}
+                      className="px-4 py-1.5 text-xs font-semibold bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors disabled:opacity-50"
+                    >
+                      {creatingSeries ? 'Creating...' : 'Create'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setShowCreateSeries(false); setNewSeriesName(''); setNewSeriesDesc(''); }}
+                      className="px-4 py-1.5 text-xs font-semibold text-gray-500 dark:text-slate-400 hover:text-gray-700 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Premium Post Toggle */}

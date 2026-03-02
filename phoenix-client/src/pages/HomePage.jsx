@@ -291,6 +291,13 @@ export default function HomePage() {
                         {post.title}
                       </h2>
 
+                      {post.seriesId && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 mb-2 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 text-xs font-semibold rounded-full border border-indigo-200 dark:border-indigo-700/50">
+                          <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+                          Part {post.seriesOrder} · {post.seriesName}
+                        </span>
+                      )}
+
                       <p className="text-sm text-gray-500 dark:text-slate-400 leading-relaxed line-clamp-2 mb-3">
                         {previewText}
                       </p>

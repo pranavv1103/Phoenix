@@ -36,4 +36,9 @@ public class PostResponse {
     private String status;
     private boolean bookmarkedByCurrentUser;
     private String coverImageUrl;
+    // Series fields
+    private UUID seriesId;
+    private String seriesName;
+    private int seriesOrder;
+    private int seriesSize;
 }

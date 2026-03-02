@@ -11,6 +11,7 @@ import AdminPage from './pages/AdminPage';
 import ProfilePage from './pages/ProfilePage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
+import SeriesPage from './pages/SeriesPage';
 
 function App() {
   return (
@@ -69,6 +70,10 @@ function App() {
                 <ProfilePage />
               </ProtectedRoute>
             }
+          />
+          <Route
+            path="/series/:id"
+            element={<SeriesPage />}
           />
         </Routes>
       </div>

@@ -5,6 +5,7 @@ import com.phoenix.dto.PostRequest;
 import com.phoenix.dto.PostResponse;
 import com.phoenix.entity.Post;
 import com.phoenix.entity.PostStatus;
+import com.phoenix.entity.Series;
 import com.phoenix.entity.Tag;
 import com.phoenix.entity.User;
 import com.phoenix.entity.UserRole;
@@ -18,6 +19,7 @@ import com.phoenix.repository.PaymentRepository;
 import com.phoenix.repository.PostRepository;
 import com.phoenix.repository.PostViewRepository;
 import com.phoenix.entity.PostView;
+import com.phoenix.repository.SeriesRepository;
 import com.phoenix.repository.TagRepository;
 import com.phoenix.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -51,6 +53,7 @@ public class PostService {
     private final PostViewRepository postViewRepository;
     private final TagRepository tagRepository;
     private final FollowRepository followRepository;
+    private final SeriesRepository seriesRepository;
 
     @Transactional(readOnly = true)
     public PagedResponse<PostResponse> getAllPosts(int page, int size, String sort, String tag) {
@@ -157,6 +160,11 @@ public class PostService {
         User author = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
+        Series series = null;
+        if (request.getSeriesId() != null) {
+            series = seriesRepository.findById(request.getSeriesId()).orElse(null);
+        }
+
         Post post = Post.builder()
                 .title(request.getTitle())
                 .content(request.getContent())
@@ -165,6 +173,8 @@ public class PostService {
                 .author(author)
                 .status(request.isSaveAsDraft() ? PostStatus.DRAFT : PostStatus.PUBLISHED)
                 .coverImageUrl(request.getCoverImageUrl())
+                .series(series)
+                .seriesOrder(request.getSeriesOrder())
                 .build();
 
         if (request.getTags() != null && !request.getTags().isEmpty()) {
@@ -197,6 +207,15 @@ public class PostService {
         if (request.getTags() != null && !request.getTags().isEmpty()) {
             post.getTags().addAll(resolveOrCreateTags(request.getTags()));
         }
+
+        // Update series
+        if (request.getSeriesId() != null) {
+            Series series = seriesRepository.findById(request.getSeriesId()).orElse(null);
+            post.setSeries(series);
+        } else {
+            post.setSeries(null);
+        }
+        post.setSeriesOrder(request.getSeriesOrder());
 
         Post updatedPost = postRepository.save(post);
         return convertToResponse(updatedPost);
@@ -324,6 +343,18 @@ public class PostService {
                 ? post.getTags().stream().map(Tag::getName).collect(Collectors.toList())
                 : new ArrayList<>();
 
+        // Series fields
+        java.util.UUID seriesId = null;
+        String seriesName = null;
+        int seriesOrder = 0;
+        int seriesSize = 0;
+        if (post.getSeries() != null) {
+            seriesId = post.getSeries().getId();
+            seriesName = post.getSeries().getName();
+            seriesOrder = post.getSeriesOrder();
+            seriesSize = (int) postRepository.countBySeries_Id(seriesId);
+        }
+
         return PostResponse.builder()
                 .id(post.getId())
                 .title(post.getTitle())
@@ -345,6 +376,10 @@ public class PostService {
                 .status(post.getStatus() != null ? post.getStatus().name() : "PUBLISHED")
                 .bookmarkedByCurrentUser(bookmarkedByCurrentUser)
                 .coverImageUrl(post.getCoverImageUrl())
+                .seriesId(seriesId)
+                .seriesName(seriesName)
+                .seriesOrder(seriesOrder)
+                .seriesSize(seriesSize)
                 .build();
     }
 

@@ -45,6 +45,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/posts/**").permitAll()
                 .requestMatchers("/api/tags/**").permitAll()
                 .requestMatchers("/api/users/**").permitAll()
+                .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/series/**").permitAll()
                 .anyRequest().authenticated()
             )
             .sessionManagement(session -> session
