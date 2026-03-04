@@ -5,6 +5,7 @@ import useAuthStore from '../store/authStore';
 import { formatRelativeTime } from '../utils/dateUtils';
 import { sanitizeHtml } from '../utils/sanitize';
 import ConfirmDeleteModal from '../components/ConfirmDeleteModal';
+import ReactionPicker from '../components/ReactionPicker';
 import MarkdownPreview from '@uiw/react-markdown-preview';
 
 const colorFromString = (str) => {
@@ -39,6 +40,7 @@ export default function PostDetailPage() {
   const [readingProgress, setReadingProgress] = useState(0);
   const [relatedPosts, setRelatedPosts] = useState([]);
   const [seriesPosts, setSeriesPosts] = useState([]);
+  const [reactLoading, setReactLoading] = useState(false);
   const COMMENTS_PAGE_SIZE = 10;
 
   const fetchPost = useCallback(async () => {
@@ -71,6 +73,30 @@ export default function PostDetailPage() {
       const { likeCount, likedByCurrentUser } = response.data.data;
       setPost(prev => ({ ...prev, likeCount, likedByCurrentUser }));
     } catch (err) { console.error('Failed to toggle like', err); }
+  };
+
+  const handleReact = async (reactionType) => {
+    if (!isAuthenticated) { navigate('/login'); return; }
+    setReactLoading(true);
+    try {
+      const response = await client.post(`/api/posts/${id}/react`, null, {
+        params: { type: reactionType }
+      });
+      const reactionData = response.data.data;
+      setPost(prev => ({
+        ...prev,
+        reactionCounts: reactionData.reactionCounts,
+        currentUserReaction: reactionData.currentUserReaction,
+        totalReactions: reactionData.totalReactions,
+        // Update legacy fields for backward compatibility
+        likeCount: reactionData.totalReactions,
+        likedByCurrentUser: reactionData.currentUserReaction != null
+      }));
+    } catch (err) {
+      console.error('Failed to toggle reaction', err);
+    } finally {
+      setReactLoading(false);
+    }
   };
 
   const handleBookmark = async () => {
@@ -406,19 +432,14 @@ export default function PostDetailPage() {
 
             {/* Action bar */}
             <div className="flex items-center gap-3 py-4 border-t border-gray-100 dark:border-slate-800 flex-wrap">
-              <button
-                onClick={handleLike}
-                className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold border transition-colors ${
-                  post.likedByCurrentUser
-                    ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border-red-200 dark:border-red-800'
-                    : 'bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 text-gray-600 dark:text-slate-400 hover:border-red-300 hover:text-red-500'
-                }`}
-              >
-                <svg className="w-4 h-4" fill={post.likedByCurrentUser ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                </svg>
-                {post.likeCount || 0}
-              </button>
+              {/* Reactions */}
+              <ReactionPicker
+                onReact={handleReact}
+                currentReaction={post.currentUserReaction}
+                reactionCounts={post.reactionCounts || {}}
+                totalReactions={post.totalReactions || post.likeCount || 0}
+                isLoading={reactLoading}
+              />
 
               <button
                 onClick={handleBookmark}

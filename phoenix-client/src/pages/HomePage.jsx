@@ -53,10 +53,21 @@ export default function HomePage() {
     e.stopPropagation();
     if (!isAuthenticated) { navigate('/login'); return; }
     try {
-      const response = await client.post(`/api/posts/${postId}/like`);
-      const { likeCount, likedByCurrentUser } = response.data.data;
-      setPosts(prev => prev.map(p => p.id === postId ? { ...p, likeCount, likedByCurrentUser } : p));
-    } catch (err) { console.error('Failed to toggle like', err); }
+      // Use the new reaction API with LIKE as default
+      const response = await client.post(`/api/posts/${postId}/react`, null, {
+        params: { type: 'LIKE' }
+      });
+      const reactionData = response.data.data;
+      setPosts(prev => prev.map(p => p.id === postId ? {
+        ...p,
+        reactionCounts: reactionData.reactionCounts,
+        currentUserReaction: reactionData.currentUserReaction,
+        totalReactions: reactionData.totalReactions,
+        // Update legacy fields for backward compatibility
+        likeCount: reactionData.totalReactions,
+        likedByCurrentUser: reactionData.currentUserReaction != null
+      } : p));
+    } catch (err) { console.error('Failed to toggle reaction', err); }
   };
 
   useEffect(() => {
@@ -329,12 +340,13 @@ export default function HomePage() {
 
                           <button
                             onClick={(e) => handleLike(e, post.id)}
-                            className={`flex items-center gap-1 transition-colors hover:text-red-500 ${post.likedByCurrentUser ? 'text-red-500' : ''}`}
+                            className={`flex items-center gap-1 transition-colors hover:text-emerald-500 ${post.likedByCurrentUser ? 'text-emerald-500' : ''}`}
+                            title="React to this post"
                           >
                             <svg className="w-3.5 h-3.5" fill={post.likedByCurrentUser ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" />
                             </svg>
-                            {post.likeCount || 0}
+                            {post.totalReactions || post.likeCount || 0}
                           </button>
 
                           <span className="flex items-center gap-1">

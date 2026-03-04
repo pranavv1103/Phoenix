@@ -1,6 +1,7 @@
 package com.phoenix.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.phoenix.entity.ReactionType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -8,6 +9,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Data
@@ -23,8 +25,16 @@ public class PostResponse {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private int commentCount;
+    
+    // Legacy like fields (kept for backward compatibility)
     private long likeCount;
     private boolean likedByCurrentUser;
+    
+    // New reaction fields
+    private Map<ReactionType, Long> reactionCounts; // e.g., {LIKE: 10, LOVE: 5, CLAP: 3}
+    private ReactionType currentUserReaction; // null if user hasn't reacted
+    private long totalReactions;
+    
     @JsonProperty("isPremium")
     private boolean isPremium;
     private int price;

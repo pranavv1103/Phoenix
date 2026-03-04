@@ -5,6 +5,8 @@ import com.phoenix.dto.PostRequest;
 import com.phoenix.dto.PostResponse;
 import com.phoenix.entity.Post;
 import com.phoenix.entity.PostStatus;
+import com.phoenix.entity.Reaction;
+import com.phoenix.entity.ReactionType;
 import com.phoenix.entity.Series;
 import com.phoenix.entity.Tag;
 import com.phoenix.entity.User;
@@ -19,6 +21,7 @@ import com.phoenix.repository.PaymentRepository;
 import com.phoenix.repository.PostRepository;
 import com.phoenix.repository.PostViewRepository;
 import com.phoenix.entity.PostView;
+import com.phoenix.repository.ReactionRepository;
 import com.phoenix.repository.SeriesRepository;
 import com.phoenix.repository.TagRepository;
 import com.phoenix.repository.UserRepository;
@@ -47,6 +50,7 @@ public class PostService {
     private final PostRepository postRepository;
     private final UserRepository userRepository;
     private final LikeRepository likeRepository;
+    private final ReactionRepository reactionRepository;
     private final BookmarkRepository bookmarkRepository;
     private final CommentRepository commentRepository;
     private final PaymentRepository paymentRepository;
@@ -331,6 +335,22 @@ public class PostService {
             currentUser = userRepository.findByEmail(auth.getName()).orElse(null);
         }
 
+        // Get reaction data
+        java.util.Map<ReactionType, Long> reactionCounts = new java.util.HashMap<>();
+        for (ReactionType type : ReactionType.values()) {
+            reactionCounts.put(type, 0L);
+        }
+        ReactionType currentUserReaction = null;
+        long totalReactions = 0;
+
+        List<Object[]> reactionData = reactionRepository.countReactionsByType(post.getId());
+        for (Object[] row : reactionData) {
+            ReactionType type = (ReactionType) row[0];
+            Long count = (Long) row[1];
+            reactionCounts.put(type, count);
+            totalReactions += count;
+        }
+
         if (currentUser != null) {
             final UUID userId = currentUser.getId();
             likedByCurrentUser = likeRepository.existsByPostIdAndUserId(post.getId(), userId);
@@ -339,6 +359,10 @@ public class PostService {
                 paidByCurrentUser = paymentRepository
                         .existsByPost_IdAndUser_IdAndStatus(post.getId(), userId, "COMPLETED");
             }
+            
+            // Get current user's reaction
+            java.util.Optional<Reaction> userReaction = reactionRepository.findByPostIdAndUserId(post.getId(), userId);
+            currentUserReaction = userReaction.map(Reaction::getType).orElse(null);
         }
 
         boolean bookmarkedByCurrentUser = currentUser != null
@@ -384,6 +408,10 @@ public class PostService {
                 .commentCount(post.getComments() != null ? post.getComments().size() : 0)
                 .likeCount(likeCount)
                 .likedByCurrentUser(likedByCurrentUser)
+                // Reaction data
+                .reactionCounts(reactionCounts)
+                .currentUserReaction(currentUserReaction)
+                .totalReactions(totalReactions)
                 .isPremium(post.isPremium())
                 .price(post.getPrice())
                 .paidByCurrentUser(paidByCurrentUser)
