@@ -132,22 +132,31 @@ html body {
   border-color: rgba(148, 163, 184, 0.4);
 }
 
-/* Custom scrollbar styling */
+/* Custom scrollbar styling — thin, rounded, theme-aware */
 ::-webkit-scrollbar {
-  width: 10px;
+  width: 5px;
+  height: 5px;
 }
 
 ::-webkit-scrollbar-track {
-  background: linear-gradient(to bottom, #f0f9ff, #fae8ff);
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: linear-gradient(to bottom, #06b6d4, #8b5cf6, #ec4899);
-  border-radius: 5px;
+  background: #cbd5e1;
+  border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(to bottom, #0891b2, #7c3aed, #db2777);
+  background: #94a3b8;
+}
+
+:root.dark ::-webkit-scrollbar-thumb {
+  background: #334155;
+}
+
+:root.dark ::-webkit-scrollbar-thumb:hover {
+  background: #475569;
 }
 
 .quill-editor .ql-toolbar {
