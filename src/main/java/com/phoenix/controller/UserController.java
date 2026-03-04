@@ -116,7 +116,7 @@ public class UserController {
         if (request.getAvatarUrl() != null) user.setAvatarUrl(request.getAvatarUrl().isBlank() ? null : request.getAvatarUrl().trim());
         if (request.getWebsiteUrl() != null) user.setWebsiteUrl(request.getWebsiteUrl().isBlank() ? null : request.getWebsiteUrl().trim());
 
-        userRepository.save(user);
+        user = userRepository.save(user);
 
         UserProfileResponse profile = UserProfileResponse.builder()
                 .username(user.getName())
