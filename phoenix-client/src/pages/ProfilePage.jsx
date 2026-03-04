@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import client from '../api/client';
 import { formatRelativeTime } from '../utils/dateUtils';
@@ -31,6 +31,9 @@ export default function ProfilePage() {
   const [editWebsiteUrl, setEditWebsiteUrl] = useState('');
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState('');
+  const [avatarTab, setAvatarTab] = useState('url'); // 'url' | 'upload'
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const fileInputRef = useRef(null);
 
   const isOwnProfile = user?.name?.trim() === username?.trim();
 
@@ -84,11 +87,51 @@ export default function ProfilePage() {
     }
   };
 
+  // Resize + compress an uploaded image to a base64 JPEG (max 300×300)
+  const processImageFile = (file) => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const MAX = 300;
+        const scale = Math.min(MAX / img.width, MAX / img.height, 1);
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL('image/jpeg', 0.85));
+      };
+      img.onerror = reject;
+      img.src = e.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+
+  const handleAvatarFileChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) { setEditError('Please select an image file.'); return; }
+    if (file.size > 5 * 1024 * 1024) { setEditError('Image must be under 5 MB.'); return; }
+    setAvatarUploading(true);
+    setEditError('');
+    try {
+      const dataUrl = await processImageFile(file);
+      setEditAvatarUrl(dataUrl);
+    } catch {
+      setEditError('Failed to process image. Please try another file.');
+    } finally {
+      setAvatarUploading(false);
+    }
+  };
+
   const openEditModal = () => {
     setEditBio(profile?.bio || '');
     setEditAvatarUrl(profile?.avatarUrl || '');
     setEditWebsiteUrl(profile?.websiteUrl || '');
     setEditError('');
+    setAvatarTab('url');
     setEditModalOpen(true);
   };
 
@@ -549,25 +592,102 @@ export default function ProfilePage() {
                 <p className="text-right text-xs text-gray-400 dark:text-slate-500 mt-1">{editBio.length}/300</p>
               </div>
 
-              {/* Avatar URL */}
+              {/* Avatar */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Avatar URL</label>
-                <input
-                  type="url"
-                  value={editAvatarUrl}
-                  onChange={(e) => setEditAvatarUrl(e.target.value)}
-                  placeholder="https://example.com/your-photo.jpg"
-                  className="w-full px-3 py-2 text-sm rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-green-500 dark:focus:ring-green-600"
-                />
+                <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Avatar</label>
+
+                {/* Tab toggle */}
+                <div className="flex rounded-xl overflow-hidden border border-gray-200 dark:border-slate-700 mb-3 text-sm">
+                  <button
+                    type="button"
+                    onClick={() => setAvatarTab('url')}
+                    className={`flex-1 py-2 font-medium transition-colors ${
+                      avatarTab === 'url'
+                        ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900'
+                        : 'bg-transparent text-gray-500 dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-800'
+                    }`}
+                  >
+                    Paste URL
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAvatarTab('upload')}
+                    className={`flex-1 py-2 font-medium transition-colors ${
+                      avatarTab === 'upload'
+                        ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900'
+                        : 'bg-transparent text-gray-500 dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-800'
+                    }`}
+                  >
+                    Upload photo
+                  </button>
+                </div>
+
+                {avatarTab === 'url' ? (
+                  <input
+                    type="url"
+                    value={editAvatarUrl.startsWith('data:') ? '' : editAvatarUrl}
+                    onChange={(e) => setEditAvatarUrl(e.target.value)}
+                    placeholder="https://example.com/your-photo.jpg"
+                    className="w-full px-3 py-2 text-sm rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-green-500 dark:focus:ring-green-600"
+                  />
+                ) : (
+                  <div>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleAvatarFileChange}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={avatarUploading}
+                      className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 border-dashed border-gray-200 dark:border-slate-700 text-sm text-gray-500 dark:text-slate-400 hover:border-green-400 dark:hover:border-green-600 hover:text-green-600 dark:hover:text-green-400 transition-colors disabled:opacity-50"
+                    >
+                      {avatarUploading ? (
+                        <>
+                          <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 12 0 12 4.291z"/>
+                          </svg>
+                          Processing...
+                        </>
+                      ) : (
+                        <>
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          </svg>
+                          {editAvatarUrl.startsWith('data:') ? 'Change photo' : 'Choose a photo'}
+                        </>
+                      )}
+                    </button>
+                    <p className="mt-1.5 text-xs text-gray-400 dark:text-slate-500 text-center">JPG, PNG, GIF, WebP · max 5 MB</p>
+                  </div>
+                )}
+
+                {/* Preview */}
                 {editAvatarUrl && (
-                  <div className="mt-2 flex items-center gap-2">
+                  <div className="mt-3 flex items-center gap-3">
                     <img
                       src={editAvatarUrl}
                       alt="Preview"
-                      className="w-10 h-10 rounded-full object-cover border border-gray-200 dark:border-slate-700"
+                      className="w-12 h-12 rounded-full object-cover border-2 border-gray-200 dark:border-slate-700 flex-shrink-0"
                       onError={(e) => { e.currentTarget.style.opacity = '0.3'; }}
                     />
-                    <span className="text-xs text-gray-500 dark:text-slate-400">Preview</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium text-gray-700 dark:text-slate-300">Preview</p>
+                      <p className="text-xs text-gray-400 dark:text-slate-500 truncate">
+                        {editAvatarUrl.startsWith('data:') ? 'Uploaded photo (compressed)' : editAvatarUrl}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setEditAvatarUrl('')}
+                      className="text-xs text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 flex-shrink-0"
+                    >
+                      Remove
+                    </button>
                   </div>
                 )}
               </div>
