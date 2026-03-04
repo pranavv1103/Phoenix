@@ -27,6 +27,17 @@ window.addEventListener('unhandledrejection', (event) => {
   showFatalError(event?.reason ?? 'Unhandled Promise Rejection');
 });
 
+// Auto-hide scrollbar: show while scrolling, hide 800ms after stop
+(function () {
+  let scrollTimer = null;
+  const html = document.documentElement;
+  window.addEventListener('scroll', () => {
+    html.classList.add('is-scrolling');
+    clearTimeout(scrollTimer);
+    scrollTimer = setTimeout(() => html.classList.remove('is-scrolling'), 800);
+  }, { passive: true, capture: true });
+})();
+
 try {
   createRoot(document.getElementById('root')).render(
     <StrictMode>
