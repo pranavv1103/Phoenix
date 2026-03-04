@@ -2,6 +2,7 @@ package com.phoenix.controller;
 
 import com.phoenix.dto.ApiResponse;
 import com.phoenix.dto.UpdateProfileRequest;
+import java.util.Objects;
 import com.phoenix.dto.UserProfileResponse;
 import com.phoenix.entity.User;
 import com.phoenix.exception.PostNotFoundException;
@@ -116,7 +117,7 @@ public class UserController {
         if (request.getAvatarUrl() != null) user.setAvatarUrl(request.getAvatarUrl().isBlank() ? null : request.getAvatarUrl().trim());
         if (request.getWebsiteUrl() != null) user.setWebsiteUrl(request.getWebsiteUrl().isBlank() ? null : request.getWebsiteUrl().trim());
 
-        user = userRepository.save(user);
+        user = userRepository.save(Objects.requireNonNull(user));
 
         UserProfileResponse profile = UserProfileResponse.builder()
                 .username(user.getName())
