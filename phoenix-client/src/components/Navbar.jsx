@@ -236,9 +236,14 @@ export default function Navbar() {
                 <div className="relative" ref={dropdownRef}>
                   <button
                     onClick={() => setDropdownOpen(!dropdownOpen)}
-                    className="w-9 h-9 bg-green-600 dark:bg-green-500 text-white rounded-full flex items-center justify-center text-sm font-bold hover:bg-green-700 dark:hover:bg-green-600 transition-colors ring-2 ring-transparent hover:ring-green-200 dark:hover:ring-green-800/60 focus:outline-none"
+                    className="w-9 h-9 rounded-full overflow-hidden flex items-center justify-center text-sm font-bold transition-colors ring-2 ring-transparent hover:ring-green-200 dark:hover:ring-green-800/60 focus:outline-none flex-shrink-0"
                   >
-                    {user?.name?.charAt(0)?.toUpperCase()}
+                    {user?.avatarUrl ? (
+                      <img src={user.avatarUrl} alt={user.name} className="w-9 h-9 object-cover rounded-full" onError={(e) => { e.currentTarget.style.display='none'; e.currentTarget.nextSibling.style.display='flex'; }} />
+                    ) : null}
+                    <span className={`w-9 h-9 bg-green-600 dark:bg-green-500 text-white rounded-full items-center justify-center text-sm font-bold hover:bg-green-700 dark:hover:bg-green-600 ${user?.avatarUrl ? 'hidden' : 'flex'}`}>
+                      {user?.name?.charAt(0)?.toUpperCase()}
+                    </span>
                   </button>
 
                   {dropdownOpen && (
@@ -396,8 +401,13 @@ export default function Navbar() {
             {isAuthenticated ? (
               <>
                 <div className="flex items-center gap-3 px-3 py-3 mb-1">
-                  <div className="w-9 h-9 bg-green-600 rounded-full flex items-center justify-center text-white text-sm font-bold">
-                    {user?.name?.charAt(0)?.toUpperCase()}
+                  <div className="w-9 h-9 rounded-full flex-shrink-0 overflow-hidden">
+                    {user?.avatarUrl ? (
+                      <img src={user.avatarUrl} alt={user.name} className="w-9 h-9 object-cover rounded-full" onError={(e) => { e.currentTarget.style.display='none'; e.currentTarget.nextSibling.style.display='flex'; }} />
+                    ) : null}
+                    <div className={`w-9 h-9 bg-green-600 rounded-full items-center justify-center text-white text-sm font-bold ${user?.avatarUrl ? 'hidden' : 'flex'}`}>
+                      {user?.name?.charAt(0)?.toUpperCase()}
+                    </div>
                   </div>
                   <div className="min-w-0">
                     <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{user?.name?.trim()}</p>

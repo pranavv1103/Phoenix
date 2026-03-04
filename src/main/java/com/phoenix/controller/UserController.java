@@ -1,6 +1,7 @@
 package com.phoenix.controller;
 
 import com.phoenix.dto.ApiResponse;
+import com.phoenix.dto.UpdateProfileRequest;
 import com.phoenix.dto.UserProfileResponse;
 import com.phoenix.entity.User;
 import com.phoenix.exception.PostNotFoundException;
@@ -50,6 +51,10 @@ public class UserController {
 
         var userProfile = UserProfileResponse.builder()
                 .username(user.getName())
+                .email(user.getEmail())
+                .bio(user.getBio())
+                .avatarUrl(user.getAvatarUrl())
+                .websiteUrl(user.getWebsiteUrl())
                 .joinedDate(user.getCreatedAt())
                 .totalPosts(publishedPosts.size())
                 .followersCount(followersCount)
@@ -97,6 +102,35 @@ public class UserController {
                 && !auth.getPrincipal().equals("anonymousUser")
                 && followService.isFollowing(username, auth.getName());
         return ResponseEntity.ok(ApiResponse.success("Follow status retrieved", following));
+    }
+
+    @PutMapping("/me")
+    @Transactional
+    public ResponseEntity<ApiResponse<UserProfileResponse>> updateMyProfile(
+            @RequestBody UpdateProfileRequest request) {
+        String currentEmail = getCurrentUserEmail();
+        User user = userRepository.findByEmail(currentEmail)
+                .orElseThrow(() -> new PostNotFoundException("User not found"));
+
+        if (request.getBio() != null) user.setBio(request.getBio().isBlank() ? null : request.getBio().trim());
+        if (request.getAvatarUrl() != null) user.setAvatarUrl(request.getAvatarUrl().isBlank() ? null : request.getAvatarUrl().trim());
+        if (request.getWebsiteUrl() != null) user.setWebsiteUrl(request.getWebsiteUrl().isBlank() ? null : request.getWebsiteUrl().trim());
+
+        userRepository.save(user);
+
+        UserProfileResponse profile = UserProfileResponse.builder()
+                .username(user.getName())
+                .email(user.getEmail())
+                .bio(user.getBio())
+                .avatarUrl(user.getAvatarUrl())
+                .websiteUrl(user.getWebsiteUrl())
+                .joinedDate(user.getCreatedAt())
+                .totalPosts(0)
+                .followersCount(0)
+                .followingCount(0)
+                .followedByCurrentUser(false)
+                .build();
+        return ResponseEntity.ok(ApiResponse.success("Profile updated", profile));
     }
 
     @GetMapping("/digest-preferences")

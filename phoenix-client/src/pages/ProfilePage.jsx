@@ -14,7 +14,7 @@ const colorFromString = (str) => {
 export default function ProfilePage() {
   const { username } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuthStore();
+  const { user, updateUser } = useAuthStore();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -23,6 +23,14 @@ export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState('posts');
   const [emailDigestEnabled, setEmailDigestEnabled] = useState(true);
   const [digestLoading, setDigestLoading] = useState(false);
+
+  // Edit profile modal state
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editBio, setEditBio] = useState('');
+  const [editAvatarUrl, setEditAvatarUrl] = useState('');
+  const [editWebsiteUrl, setEditWebsiteUrl] = useState('');
+  const [editSaving, setEditSaving] = useState(false);
+  const [editError, setEditError] = useState('');
 
   const isOwnProfile = user?.name?.trim() === username?.trim();
 
@@ -76,6 +84,34 @@ export default function ProfilePage() {
     }
   };
 
+  const openEditModal = () => {
+    setEditBio(profile?.bio || '');
+    setEditAvatarUrl(profile?.avatarUrl || '');
+    setEditWebsiteUrl(profile?.websiteUrl || '');
+    setEditError('');
+    setEditModalOpen(true);
+  };
+
+  const handleEditSave = async () => {
+    setEditSaving(true);
+    setEditError('');
+    try {
+      const res = await client.put('/api/users/me', {
+        bio: editBio,
+        avatarUrl: editAvatarUrl,
+        websiteUrl: editWebsiteUrl,
+      });
+      const updated = res.data.data;
+      setProfile(prev => ({ ...prev, bio: updated.bio, avatarUrl: updated.avatarUrl, websiteUrl: updated.websiteUrl }));
+      updateUser({ avatarUrl: updated.avatarUrl });
+      setEditModalOpen(false);
+    } catch (err) {
+      setEditError(err.response?.data?.message || 'Failed to save changes');
+    } finally {
+      setEditSaving(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 dark:bg-slate-950 gap-3">
@@ -105,8 +141,18 @@ export default function ProfilePage() {
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-200 dark:border-slate-800 p-6 sm:p-8 mb-6">
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5">
             {/* Avatar */}
-            <div className={`w-20 h-20 sm:w-24 sm:h-24 ${avatarColor} rounded-full flex items-center justify-center text-white text-3xl sm:text-4xl font-black flex-shrink-0`}>
-              {profile.username.charAt(0).toUpperCase()}
+            <div className="flex-shrink-0">
+              {profile.avatarUrl ? (
+                <img
+                  src={profile.avatarUrl}
+                  alt={profile.username}
+                  className="w-20 h-20 sm:w-24 sm:h-24 rounded-full object-cover border-2 border-gray-100 dark:border-slate-800"
+                  onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextSibling.style.display = 'flex'; }}
+                />
+              ) : null}
+              <div className={`w-20 h-20 sm:w-24 sm:h-24 ${avatarColor} rounded-full flex items-center justify-center text-white text-3xl sm:text-4xl font-black ${profile.avatarUrl ? 'hidden' : ''}`}>
+                {profile.username.charAt(0).toUpperCase()}
+              </div>
             </div>
 
             {/* Info */}
@@ -125,7 +171,38 @@ export default function ProfilePage() {
                     {profile.followedByCurrentUser ? 'Following' : 'Follow'}
                   </button>
                 )}
+                {isOwnProfile && (
+                  <button
+                    onClick={openEditModal}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-600 dark:text-slate-400 border border-gray-200 dark:border-slate-700 rounded-full hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                    </svg>
+                    Edit profile
+                  </button>
+                )}
               </div>
+
+              {/* Bio */}
+              {profile.bio && (
+                <p className="text-sm text-gray-600 dark:text-slate-400 mb-2 leading-relaxed max-w-lg">{profile.bio}</p>
+              )}
+
+              {/* Website */}
+              {profile.websiteUrl && (
+                <a
+                  href={profile.websiteUrl.startsWith('http') ? profile.websiteUrl : `https://${profile.websiteUrl}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-xs text-green-600 dark:text-green-400 hover:underline mb-2"
+                >
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                  </svg>
+                  {profile.websiteUrl.replace(/^https?:\/\//, '')}
+                </a>
+              )}
 
               {/* Stats inline */}
               <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500 dark:text-slate-400">
@@ -441,6 +518,102 @@ export default function ProfilePage() {
         )}
 
       </div>
+
+      {/* Edit Profile Modal */}
+      {editModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-200 dark:border-slate-800 w-full max-w-md shadow-2xl">
+            <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-slate-800">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Edit Profile</h2>
+              <button
+                onClick={() => setEditModalOpen(false)}
+                className="text-gray-400 hover:text-gray-600 dark:text-slate-500 dark:hover:text-slate-300 transition-colors"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              {/* Bio */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Bio</label>
+                <textarea
+                  value={editBio}
+                  onChange={(e) => setEditBio(e.target.value)}
+                  rows={3}
+                  maxLength={300}
+                  placeholder="Tell people a little about yourself..."
+                  className="w-full px-3 py-2 text-sm rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-green-500 dark:focus:ring-green-600 resize-none"
+                />
+                <p className="text-right text-xs text-gray-400 dark:text-slate-500 mt-1">{editBio.length}/300</p>
+              </div>
+
+              {/* Avatar URL */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Avatar URL</label>
+                <input
+                  type="url"
+                  value={editAvatarUrl}
+                  onChange={(e) => setEditAvatarUrl(e.target.value)}
+                  placeholder="https://example.com/your-photo.jpg"
+                  className="w-full px-3 py-2 text-sm rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-green-500 dark:focus:ring-green-600"
+                />
+                {editAvatarUrl && (
+                  <div className="mt-2 flex items-center gap-2">
+                    <img
+                      src={editAvatarUrl}
+                      alt="Preview"
+                      className="w-10 h-10 rounded-full object-cover border border-gray-200 dark:border-slate-700"
+                      onError={(e) => { e.currentTarget.style.opacity = '0.3'; }}
+                    />
+                    <span className="text-xs text-gray-500 dark:text-slate-400">Preview</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Website URL */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Website</label>
+                <input
+                  type="text"
+                  value={editWebsiteUrl}
+                  onChange={(e) => setEditWebsiteUrl(e.target.value)}
+                  placeholder="yoursite.com"
+                  className="w-full px-3 py-2 text-sm rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-green-500 dark:focus:ring-green-600"
+                />
+              </div>
+
+              {editError && (
+                <p className="text-sm text-red-600 dark:text-red-400">{editError}</p>
+              )}
+            </div>
+            <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-100 dark:border-slate-800">
+              <button
+                onClick={() => setEditModalOpen(false)}
+                disabled={editSaving}
+                className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleEditSave}
+                disabled={editSaving}
+                className="px-5 py-2 text-sm font-semibold text-white bg-gray-900 dark:bg-white dark:text-gray-900 rounded-full hover:bg-gray-700 dark:hover:bg-gray-200 transition-colors disabled:opacity-50 flex items-center gap-2"
+              >
+                {editSaving && (
+                  <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 12 0 12 4.291z" />
+                  </svg>
+                )}
+                {editSaving ? 'Saving...' : 'Save changes'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

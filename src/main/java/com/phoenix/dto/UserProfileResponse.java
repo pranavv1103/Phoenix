@@ -14,6 +14,10 @@ import java.util.List;
 @AllArgsConstructor
 public class UserProfileResponse {
     private String username;
+    private String email;
+    private String bio;
+    private String avatarUrl;
+    private String websiteUrl;
     private LocalDateTime joinedDate;
     private int totalPosts;
     private List<PostResponse> posts;

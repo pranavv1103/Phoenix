@@ -53,6 +53,15 @@ public class User implements UserDetails {
     @Builder.Default
     private boolean emailDigestEnabled = true;
 
+    @Column(columnDefinition = "TEXT")
+    private String bio;
+
+    @Column(columnDefinition = "TEXT")
+    private String avatarUrl;
+
+    @Column(length = 255)
+    private String websiteUrl;
+
     @OneToMany(mappedBy = "author", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Post> posts;
 
