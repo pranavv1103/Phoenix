@@ -1,20 +1,24 @@
 package com.phoenix.controller;
 
 import com.phoenix.dto.ApiResponse;
+import com.phoenix.dto.ChangePasswordRequest;
 import com.phoenix.dto.UpdateProfileRequest;
 import java.util.Objects;
 import com.phoenix.dto.UserProfileResponse;
 import com.phoenix.entity.User;
 import com.phoenix.exception.PostNotFoundException;
+import com.phoenix.exception.UnauthorizedException;
 import com.phoenix.repository.LikeRepository;
 import com.phoenix.repository.UserRepository;
 import com.phoenix.service.FollowService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
@@ -27,6 +31,7 @@ public class UserController {
     private final UserRepository userRepository;
     private final LikeRepository likeRepository;
     private final FollowService followService;
+    private final PasswordEncoder passwordEncoder;
 
     @GetMapping("/{username}")
     @Transactional(readOnly = true)
@@ -151,6 +156,24 @@ public class UserController {
         userRepository.save(user);
         String message = enabled ? "Weekly digest enabled" : "Weekly digest disabled";
         return ResponseEntity.ok(ApiResponse.success(message, enabled));
+    }
+
+    @PutMapping("/me/password")
+    @Transactional
+    public ResponseEntity<ApiResponse<Void>> changePassword(
+            @Valid @RequestBody ChangePasswordRequest request) {
+        if (!request.getNewPassword().equals(request.getConfirmPassword())) {
+            throw new UnauthorizedException("New passwords do not match");
+        }
+        String currentEmail = getCurrentUserEmail();
+        User user = userRepository.findByEmail(currentEmail)
+                .orElseThrow(() -> new PostNotFoundException("User not found"));
+        if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
+            throw new UnauthorizedException("Current password is incorrect");
+        }
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(Objects.requireNonNull(user));
+        return ResponseEntity.ok(ApiResponse.success("Password changed successfully", null));
     }
 
     private String getCurrentUserEmail() {
