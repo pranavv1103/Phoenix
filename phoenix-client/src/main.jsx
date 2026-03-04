@@ -27,15 +27,21 @@ window.addEventListener('unhandledrejection', (event) => {
   showFatalError(event?.reason ?? 'Unhandled Promise Rejection');
 });
 
-// Auto-hide scrollbar: show while scrolling, hide 800ms after stop
+// Auto-hide scrollbar: show while scrolling, hide 1.5s after stop
 (function () {
   let scrollTimer = null;
-  const html = document.documentElement;
-  window.addEventListener('scroll', () => {
-    html.classList.add('is-scrolling');
+  function onScroll() {
+    document.documentElement.classList.add('is-scrolling');
+    document.body.classList.add('is-scrolling');
     clearTimeout(scrollTimer);
-    scrollTimer = setTimeout(() => html.classList.remove('is-scrolling'), 800);
-  }, { passive: true, capture: true });
+    scrollTimer = setTimeout(function () {
+      document.documentElement.classList.remove('is-scrolling');
+      document.body.classList.remove('is-scrolling');
+    }, 1500);
+  }
+  // capture:true catches scroll events from any scrollable element
+  window.addEventListener('scroll', onScroll, { passive: true, capture: true });
+  document.addEventListener('scroll', onScroll, { passive: true, capture: true });
 })();
 
 try {

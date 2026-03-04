@@ -132,53 +132,65 @@ html body {
   border-color: rgba(148, 163, 184, 0.4);
 }
 
-/* Scrollbar — thin, rounded, auto-hide (appears on scroll, fades out after stop) */
+/* Scrollbar — thin, rounded, iOS-style auto-hide */
 ::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
+  width: 5px;
+  height: 5px;
 }
 
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 
-/* Thumb is invisible by default */
+/* Thumb invisible by default; fades in via class added by JS */
 ::-webkit-scrollbar-thumb {
   background: transparent;
   border-radius: 9999px;
-  transition: background 0.25s ease;
+  transition: background 0.2s ease;
 }
 
-/* Light mode: show while scrolling */
-html.is-scrolling ::-webkit-scrollbar-thumb {
-  background: rgba(71, 85, 105, 0.7);
+/* ---- Light mode ---- */
+/* Page-level scrollbar (html's own) */
+html.is-scrolling::-webkit-scrollbar-thumb {
+  background: rgba(71, 85, 105, 0.65);
+}
+html.is-scrolling::-webkit-scrollbar-thumb:hover {
+  background: rgba(51, 65, 85, 0.9);
+}
+/* Overflow scrollbars inside the page */
+.is-scrolling ::-webkit-scrollbar-thumb {
+  background: rgba(71, 85, 105, 0.65);
+}
+.is-scrolling ::-webkit-scrollbar-thumb:hover {
+  background: rgba(51, 65, 85, 0.9);
 }
 
-html.is-scrolling ::-webkit-scrollbar-thumb:hover {
-  background: rgba(51, 65, 85, 0.95);
+/* ---- Dark mode ---- */
+:root.dark.is-scrolling::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.55);
+}
+:root.dark.is-scrolling::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.85);
+}
+:root.dark .is-scrolling ::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.55);
+}
+:root.dark .is-scrolling ::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.85);
 }
 
-/* Dark mode: show while scrolling */
-:root.dark.is-scrolling ::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.5);
-}
-
-:root.dark.is-scrolling ::-webkit-scrollbar-thumb:hover {
-  background: rgba(148, 163, 184, 0.8);
-}
-
-/* Firefox */
+/* Firefox — no transition support, just show/hide */
 * {
   scrollbar-width: thin;
   scrollbar-color: transparent transparent;
 }
-
+html.is-scrolling,
 html.is-scrolling * {
-  scrollbar-color: rgba(71, 85, 105, 0.7) transparent;
+  scrollbar-color: rgba(71, 85, 105, 0.65) transparent;
 }
-
+:root.dark.is-scrolling,
 :root.dark.is-scrolling * {
-  scrollbar-color: rgba(148, 163, 184, 0.5) transparent;
+  scrollbar-color: rgba(148, 163, 184, 0.55) transparent;
 }
 
 .quill-editor .ql-toolbar {
