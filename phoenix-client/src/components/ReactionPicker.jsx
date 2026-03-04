@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import PropTypes from 'prop-types';
 
 const REACTION_TYPES = {
   LIKE: { emoji: '👍', label: 'Like' },
@@ -10,7 +9,7 @@ const REACTION_TYPES = {
   FIRE: { emoji: '🔥', label: 'Fire' }
 };
 
-const ReactionPicker = ({ onReact, currentReaction, reactionCounts, totalReactions, isLoading }) => {
+const ReactionPicker = ({ onReact, currentReaction, reactionCounts = {}, totalReactions = 0, isLoading = false }) => {
   const [showPicker, setShowPicker] = useState(false);
 
   const handleReaction = (type) => {
@@ -97,21 +96,6 @@ const ReactionPicker = ({ onReact, currentReaction, reactionCounts, totalReactio
       )}
     </div>
   );
-};
-
-ReactionPicker.propTypes = {
-  onReact: PropTypes.func.isRequired,
-  currentReaction: PropTypes.string,
-  reactionCounts: PropTypes.object,
-  totalReactions: PropTypes.number,
-  isLoading: PropTypes.bool
-};
-
-ReactionPicker.defaultProps = {
-  currentReaction: null,
-  reactionCounts: {},
-  totalReactions: 0,
-  isLoading: false
 };
 
 export default ReactionPicker;
