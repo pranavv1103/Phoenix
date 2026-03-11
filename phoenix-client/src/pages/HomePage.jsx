@@ -110,6 +110,15 @@ export default function HomePage() {
 
   useEffect(() => { fetchPosts(); }, [fetchPosts]);
 
+  // Refetch posts when window regains focus (helps with stale data after navigation)
+  useEffect(() => {
+    const handleFocus = () => {
+      fetchPosts();
+    };
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [fetchPosts]);
+
   const handleNextPage = () => { if (!isLast) { setCurrentPage(p => p + 1); window.scrollTo({ top: 0, behavior: 'smooth' }); } };
   const handlePreviousPage = () => { if (!isFirst) { setCurrentPage(p => p - 1); window.scrollTo({ top: 0, behavior: 'smooth' }); } };
   const handleSortChange = (e) => { setSortOption(e.target.value); setCurrentPage(0); };

@@ -27,35 +27,44 @@ public class ReactionService {
     private final NotificationService notificationService;
 
     @Transactional
-    public ReactionResponse toggleReaction(UUID postId, ReactionType reactionType, String userEmail) {
+    public synchronized ReactionResponse toggleReaction(UUID postId, ReactionType reactionType, String userEmail) {
         Post post = postRepository.findById(Objects.requireNonNull(postId))
                 .orElseThrow(() -> new PostNotFoundException("Post not found with id: " + postId));
         User user = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
+        // Use pessimistic locking to prevent race conditions
         Optional<Reaction> existingReaction = reactionRepository.findByPostAndUser(post, user);
 
         if (existingReaction.isPresent()) {
             Reaction reaction = existingReaction.get();
             if (reaction.getType() == reactionType) {
-                // Same reaction - remove it (toggle off)
-                reactionRepository.delete(reaction);
+                // Same reaction - remove ALL reactions for this user-post combination (cleanup)
+                reactionRepository.deleteAllByPostIdAndUserId(postId, user.getId());
+                reactionRepository.flush(); // Force immediate database sync
                 return getReactionStatus(postId, userEmail);
             } else {
                 // Different reaction - update it
                 reaction.setType(reactionType);
                 reactionRepository.save(reaction);
+                reactionRepository.flush(); // Force immediate database sync
                 createReactionNotification(post, user, reactionType);
                 return getReactionStatus(postId, userEmail);
             }
         } else {
-            // New reaction
+            // Check one more time to prevent duplicates (double-check pattern)
+            // First clean up any orphaned duplicates
+            reactionRepository.deleteAllByPostIdAndUserId(postId, user.getId());
+            reactionRepository.flush();
+            
+            // Now create new reaction
             Reaction reaction = Reaction.builder()
                     .post(post)
                     .user(user)
                     .type(reactionType)
                     .build();
             reactionRepository.save(Objects.requireNonNull(reaction));
+            reactionRepository.flush(); // Force immediate database sync
             createReactionNotification(post, user, reactionType);
             return getReactionStatus(postId, userEmail);
         }

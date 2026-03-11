@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 
 const REACTION_TYPES = {
   LIKE: { emoji: '👍', label: 'Like' },
@@ -11,10 +11,39 @@ const REACTION_TYPES = {
 
 const ReactionPicker = ({ onReact, currentReaction, reactionCounts = {}, totalReactions = 0, isLoading = false }) => {
   const [showPicker, setShowPicker] = useState(false);
+  const debounceTimerRef = useRef(null);
+  const [isDebouncing, setIsDebouncing] = useState(false);
+
+  // Cleanup timer on unmount
+  React.useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, []);
 
   const handleReaction = (type) => {
-    onReact(type);
+    // Prevent rapid clicks - debounce reaction calls
+    if (isDebouncing || isLoading) {
+      return;
+    }
+
+    setIsDebouncing(true);
     setShowPicker(false);
+    
+    // Clear any existing timer
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    // Call the reaction handler immediately
+    onReact(type);
+
+    // Set a debounce timer to prevent rapid successive clicks
+    debounceTimerRef.current = setTimeout(() => {
+      setIsDebouncing(false);
+    }, 500); // 500ms debounce
   };
 
   const mostUsedReaction = Object.entries(reactionCounts || {})
@@ -22,6 +51,9 @@ const ReactionPicker = ({ onReact, currentReaction, reactionCounts = {}, totalRe
     .sort((a, b) => b[1] - a[1])[0];
 
   const displayReaction = currentReaction || (mostUsedReaction ? mostUsedReaction[0] : 'LIKE');
+  
+  // Determine if button should be disabled
+  const isDisabled = isLoading || isDebouncing;
 
   return (
     <div className="relative inline-block">
@@ -29,13 +61,13 @@ const ReactionPicker = ({ onReact, currentReaction, reactionCounts = {}, totalRe
       <div className="flex items-center gap-2">
         <button
           onClick={() => handleReaction(currentReaction || 'LIKE')}
-          onMouseEnter={() => setShowPicker(true)}
-          disabled={isLoading}
+          onMouseEnter={() => !isDisabled && setShowPicker(true)}
+          disabled={isDisabled}
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
             currentReaction
               ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border-2 border-emerald-500'
               : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
-          } ${isLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+          } ${isDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
         >
           <span className="text-lg">{REACTION_TYPES[displayReaction]?.emoji}</span>
           {totalReactions > 0 && <span>{totalReactions}</span>}
@@ -43,7 +75,7 @@ const ReactionPicker = ({ onReact, currentReaction, reactionCounts = {}, totalRe
       </div>
 
       {/* Reaction picker dropdown */}
-      {showPicker && !isLoading && (
+      {showPicker && !isDisabled && (
         <div
           onMouseLeave={() => setShowPicker(false)}
           className="absolute bottom-full left-0 mb-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-2 flex gap-1 z-50"
