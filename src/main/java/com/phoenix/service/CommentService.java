@@ -35,7 +35,7 @@ public class CommentService {
     private final UserRepository userRepository;
     private final NotificationService notificationService;
 
-    @Transactional(readOnly = true)
+    @Transactional
     public PagedResponse<CommentResponse> getCommentsByPostId(@NonNull UUID postId, int page, int size) {
         if (!postRepository.existsById(Objects.requireNonNull(postId))) {
             throw new PostNotFoundException("Post not found with id: " + postId);

@@ -70,7 +70,7 @@ public class ReactionService {
         }
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public ReactionResponse getReactionStatus(UUID postId, String userEmail) {
         List<Object[]> reactionData = reactionRepository.countReactionsByType(postId);
         Map<ReactionType, Long> reactionCounts = new HashMap<>();

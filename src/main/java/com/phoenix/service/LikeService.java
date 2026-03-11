@@ -65,7 +65,7 @@ public class LikeService {
         }
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public LikeResponse getLikeStatus(UUID postId, String userEmail) {
         long count = likeRepository.countByPostId(postId);
         boolean liked = false;

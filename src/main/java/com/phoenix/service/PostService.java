@@ -59,7 +59,7 @@ public class PostService {
     private final FollowRepository followRepository;
     private final SeriesRepository seriesRepository;
 
-    @Transactional(readOnly = true)
+    @Transactional
     public PagedResponse<PostResponse> getAllPosts(int page, int size, String sort, String tag) {
         Page<Post> postPage;
         if (tag != null && !tag.trim().isEmpty()) {
@@ -77,7 +77,7 @@ public class PostService {
         return buildPagedResponse(postPage);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public PagedResponse<PostResponse> searchPosts(String query, int page, int size, String sort, String tag) {
         if (query == null || query.trim().isEmpty()) {
             return getAllPosts(page, size, sort, tag);
@@ -266,7 +266,7 @@ public class PostService {
         postRepository.delete(Objects.requireNonNull(post));
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public List<PostResponse> getMyDrafts(String userEmail) {
         return postRepository.findByAuthorEmailAndStatus(userEmail, PostStatus.DRAFT)
                 .stream()
@@ -274,13 +274,13 @@ public class PostService {
                 .collect(Collectors.toList());
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public PagedResponse<PostResponse> getTrendingPosts(int page, int size) {
         Page<Post> postPage = postRepository.findAllOrderByLikeCountDesc(PageRequest.of(page, size));
         return buildPagedResponse(postPage);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public PagedResponse<PostResponse> getFollowingFeed(int page, int size, String userEmail) {
         User user = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
@@ -300,7 +300,7 @@ public class PostService {
         return buildPagedResponse(postPage);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public List<PostResponse> getRelatedPosts(@NonNull UUID id) {
         Post post = postRepository.findById(Objects.requireNonNull(id))
                 .orElseThrow(() -> new PostNotFoundException("Post not found with id: " + id));
@@ -405,7 +405,7 @@ public class PostService {
                 .authorEmail(post.getAuthor().getEmail())
                 .createdAt(post.getCreatedAt())
                 .updatedAt(post.getUpdatedAt())
-                .commentCount(post.getComments() != null ? post.getComments().size() : 0)
+                .commentCount((int) commentRepository.countByPostId(post.getId()))
                 .likeCount(likeCount)
                 .likedByCurrentUser(likedByCurrentUser)
                 // Reaction data

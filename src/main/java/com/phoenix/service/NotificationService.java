@@ -48,7 +48,7 @@ public class NotificationService {
         notificationRepository.save(Objects.requireNonNull(notification));
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public PagedResponse<NotificationResponse> getMyNotifications(String email, int page, int size) {
         PageRequest pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
         Page<Notification> notifPage = notificationRepository
@@ -69,7 +69,7 @@ public class NotificationService {
                 .build();
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public long getUnreadCount(String email) {
         return notificationRepository.countByRecipient_EmailAndIsReadFalse(email);
     }

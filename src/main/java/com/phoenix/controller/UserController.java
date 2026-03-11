@@ -33,7 +33,7 @@ public class UserController {
     private final PasswordEncoder passwordEncoder;
 
     @GetMapping("/{username}")
-    @Transactional(readOnly = true)
+    @Transactional
     public ResponseEntity<ApiResponse<UserProfileResponse>> getUserProfile(
             @PathVariable String username,
             @AuthenticationPrincipal UserDetails userDetails) {

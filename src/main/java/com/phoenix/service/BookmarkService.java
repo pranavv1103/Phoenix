@@ -48,7 +48,7 @@ public class BookmarkService {
     /**
      * Returns all bookmarked posts for the given user, newest first.
      */
-    @Transactional(readOnly = true)
+    @Transactional
     public List<PostResponse> getMyBookmarks(String userEmail) {
         User user = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new PostNotFoundException("User not found"));

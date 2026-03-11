@@ -34,7 +34,7 @@ public class AdminService {
     private final PaymentRepository paymentRepository;
     private final PostViewRepository postViewRepository;
 
-    @Transactional(readOnly = true)
+    @Transactional
     public List<PostResponse> getAllPostsForAdmin() {
         return postRepository.findAllByOrderByCreatedAtDesc(org.springframework.data.domain.Pageable.unpaged())
                 .getContent()
@@ -43,7 +43,7 @@ public class AdminService {
                 .collect(Collectors.toList());
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public List<UserResponse> getAllUsers() {
         return userRepository.findAll().stream()
                 .map(this::convertUserToResponse)
@@ -72,7 +72,7 @@ public class AdminService {
                 .authorEmail(post.getAuthor().getEmail())
                 .createdAt(post.getCreatedAt())
                 .updatedAt(post.getUpdatedAt())
-                .commentCount(post.getComments() != null ? post.getComments().size() : 0)
+                .commentCount((int) commentRepository.countByPostId(post.getId()))
                 .build();
     }
 

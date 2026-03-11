@@ -44,7 +44,7 @@ public class SeriesService {
         return toResponse(saved);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public List<SeriesResponse> getMySeries(String userEmail) {
         return seriesRepository.findByAuthor_EmailOrderByCreatedAtDesc(userEmail)
                 .stream()
@@ -101,7 +101,7 @@ public class SeriesService {
         seriesRepository.delete(series);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public List<PostResponse> getSeriesPosts(UUID id) {
         return postRepository.findBySeries_IdOrderBySeriesOrder(id)
                 .stream()
@@ -109,7 +109,7 @@ public class SeriesService {
                 .collect(Collectors.toList());
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public SeriesResponse getSeriesById(UUID id) {
         Series series = seriesRepository.findById(Objects.requireNonNull(id))
                 .orElseThrow(() -> new RuntimeException("Series not found"));
