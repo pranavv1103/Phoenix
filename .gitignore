@@ -32,3 +32,4 @@ phoenix-client/lerna-debug.log*
 .env
 .env.*
 !.env.example
+!phoenix-client/.env.production

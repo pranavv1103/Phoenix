@@ -16,7 +16,6 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/payments")
-@CrossOrigin(origins = {"http://localhost:5173", "http://localhost:5174"})
 @RequiredArgsConstructor
 public class PaymentController {
 
