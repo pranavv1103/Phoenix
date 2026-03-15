@@ -460,6 +460,7 @@ public class PostService {
     // Version History
     // -------------------------------------------------------------------------
 
+    @Transactional(readOnly = true)
     public PostVersionResponse getPreviousVersion(UUID postId, String userEmail) {
         Post post = postRepository.findById(Objects.requireNonNull(postId))
                 .orElseThrow(() -> new PostNotFoundException("Post not found with id: " + postId));

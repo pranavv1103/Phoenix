@@ -39,7 +39,7 @@ export default function EditPostPage() {
   const [creatingSeries, setCreatingSeries] = useState(false);
   // Version history
   const [previousVersion, setPreviousVersion] = useState(null);
-  const [showVersionPanel, setShowVersionPanel] = useState(false);
+  const [showVersionPanel, setShowVersionPanel] = useState(true);
   const [showVersionPreview, setShowVersionPreview] = useState(false);
   const [restoring, setRestoring] = useState(false);
   const [versionMessage, setVersionMessage] = useState('');
@@ -228,10 +228,10 @@ export default function EditPostPage() {
           const versionRes = await client.get(`/api/posts/${id}/versions/previous`);
           const versionData = versionRes.data.data || null;
           setPreviousVersion(versionData);
-          setShowVersionPanel(Boolean(versionData));
+          setShowVersionPanel(true);
         } catch {
           setPreviousVersion(null);
-          setShowVersionPanel(false);
+          // keep panel open (shows "No snapshots yet")
         }
       } catch {
         setError('Failed to load post');
@@ -287,7 +287,7 @@ export default function EditPostPage() {
       const versionRes = await client.get(`/api/posts/${id}/versions/previous`);
       const versionData = versionRes.data.data || null;
       setPreviousVersion(versionData);
-      setShowVersionPanel(Boolean(versionData));
+      setShowVersionPanel(true);
     } catch {
       setVersionMessage('Failed to restore version. Please try again.');
     } finally {
