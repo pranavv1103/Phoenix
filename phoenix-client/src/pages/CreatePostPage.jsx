@@ -44,7 +44,7 @@ const normalizeDateTimeLocal = (value) => {
 };
 
 const getMinScheduleLocalValue = () =>
-  toDateTimeLocalValue(new Date(Date.now() + 2 * 60 * 1000).toISOString());
+  toDateTimeLocalValue(new Date().toISOString());
 
 export default function CreatePostPage() {
   const [title, setTitle] = useState('');
@@ -216,8 +216,8 @@ export default function CreatePostPage() {
     }
     if (!saveAsDraft && scheduledPublishAt) {
       const parsed = parseLocalDateTime(scheduledPublishAt);
-      if (!parsed || parsed.getTime() <= Date.now() + 2 * 60 * 1000) {
-        setError('Scheduled publish time must be at least 2 minutes in the future.');
+      if (!parsed || parsed.getTime() <= Date.now()) {
+        setError('Scheduled publish time must be in the future.');
         setLoading(false);
         return;
       }
@@ -528,7 +528,7 @@ export default function CreatePostPage() {
                 )}
               </div>
               <p className="text-xs text-gray-500 dark:text-slate-400 mb-3">
-                Leave empty to publish immediately. Choose a date/time at least 2 minutes in the future to auto-publish.
+                Leave empty to publish immediately. Choose a future date and time to auto-publish.
               </p>
               <input
                 type="datetime-local"
