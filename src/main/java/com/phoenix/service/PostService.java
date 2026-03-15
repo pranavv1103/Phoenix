@@ -208,6 +208,10 @@ public class PostService {
             throw new UnauthorizedException("You are not authorized to update this post");
         }
 
+        // Snapshot the persisted state before mutating the entity so the
+        // previous-version record actually contains the old content.
+        snapshotCurrentVersion(post);
+
         post.setTitle(request.getTitle());
         post.setContent(request.getContent());
         post.setPremium(request.isPremium());
@@ -230,9 +234,6 @@ public class PostService {
             post.setSeries(null);
         }
         post.setSeriesOrder(request.getSeriesOrder());
-
-        // Snapshot current content as previous version before applying changes
-        snapshotCurrentVersion(post);
 
         refreshAiSummary(post);
 
