@@ -378,7 +378,9 @@ export default function ProfilePage() {
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       <h3 className="text-base font-semibold text-gray-900 dark:text-white line-clamp-1">{draft.title}</h3>
-                      <span className="flex-shrink-0 px-2 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-xs font-semibold rounded-full border border-amber-200 dark:border-amber-700/50">Draft</span>
+                      <span className={`flex-shrink-0 px-2 py-0.5 text-xs font-semibold rounded-full border ${draft.status === 'SCHEDULED' ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 border-indigo-200 dark:border-indigo-700/50' : 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-700/50'}`}>
+                        {draft.status === 'SCHEDULED' ? 'Scheduled' : 'Draft'}
+                      </span>
                     </div>
                     <p className="text-xs text-gray-400 dark:text-slate-500">{formatRelativeTime(draft.createdAt)}</p>
                   </div>

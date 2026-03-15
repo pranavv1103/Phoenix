@@ -55,6 +55,9 @@ public class Post {
     @Builder.Default
     private PostStatus status = PostStatus.PUBLISHED;
 
+    @Column(name = "scheduled_publish_at")
+    private LocalDateTime scheduledPublishAt;
+
     @Column(columnDefinition = "TEXT")
     private String coverImageUrl;
 

@@ -35,6 +35,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -75,12 +76,12 @@ public class PostService {
             if (isMostLiked(sort)) {
                 postPage = postRepository.findByTagNameOrderByLikeCountDesc(t, PageRequest.of(page, size));
             } else {
-                postPage = postRepository.findByStatusAndTags_Name(PostStatus.PUBLISHED, t, buildPageable(page, size, sort));
+                postPage = postRepository.findVisibleByTag(t, buildPageable(page, size, sort));
             }
         } else if (isMostLiked(sort)) {
             postPage = postRepository.findAllOrderByLikeCountDesc(PageRequest.of(page, size));
         } else {
-            postPage = postRepository.findByStatus(PostStatus.PUBLISHED, buildPageable(page, size, sort));
+            postPage = postRepository.findVisible(buildPageable(page, size, sort));
         }
         return buildPagedResponse(postPage);
     }
@@ -100,13 +101,12 @@ public class PostService {
                 postPage = postRepository.findByTitleContainingIgnoreCaseAndTagNameOrderByLikeCountDesc(
                         query.trim(), t, PageRequest.of(page, size));
             } else {
-                postPage = postRepository.findByStatusAndTitleContainingIgnoreCaseAndTags_Name(
-                        PostStatus.PUBLISHED, query.trim(), t, pageable);
+                postPage = postRepository.findVisibleByTitleAndTag(query.trim(), t, pageable);
             }
         } else if (isMostLiked(sort)) {
             postPage = postRepository.findByTitleContainingIgnoreCaseOrderByLikeCountDesc(query.trim(), PageRequest.of(page, size));
         } else {
-            postPage = postRepository.findByStatusAndTitleContainingIgnoreCase(PostStatus.PUBLISHED, query.trim(), pageable);
+            postPage = postRepository.findVisibleByTitle(query.trim(), pageable);
         }
 
         return buildPagedResponse(postPage);
@@ -149,10 +149,23 @@ public class PostService {
         Post post = postRepository.findById(Objects.requireNonNull(id))
                 .orElseThrow(() -> new PostNotFoundException("Post not found with id: " + id));
 
-        // Count only unique views per authenticated user
+        publishIfDue(post);
+
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        User currentUser = null;
         if (auth != null && auth.isAuthenticated() && !auth.getPrincipal().equals("anonymousUser")) {
-            User viewer = userRepository.findByEmail(auth.getName()).orElse(null);
+            currentUser = userRepository.findByEmail(auth.getName()).orElse(null);
+        }
+
+        boolean isAuthorOrAdmin = currentUser != null
+                && (post.getAuthor().getId().equals(currentUser.getId()) || currentUser.getRole() == UserRole.ROLE_ADMIN);
+        if (!isPubliclyVisible(post) && !isAuthorOrAdmin) {
+            throw new PostNotFoundException("Post not found with id: " + id);
+        }
+
+        // Count only unique views per authenticated user
+        if (auth != null && auth.isAuthenticated() && !auth.getPrincipal().equals("anonymousUser")) {
+            User viewer = currentUser;
             if (viewer != null && !postViewRepository.existsByPostIdAndUserId(post.getId(), viewer.getId())) {
                 PostView view = PostView.builder()
                         .postId(post.getId())
@@ -183,11 +196,12 @@ public class PostService {
                 .isPremium(request.isPremium())
                 .price(request.getPrice())
                 .author(author)
-                .status(request.isSaveAsDraft() ? PostStatus.DRAFT : PostStatus.PUBLISHED)
                 .coverImageUrl(request.getCoverImageUrl())
                 .series(series)
                 .seriesOrder(request.getSeriesOrder())
                 .build();
+
+        applyPublishingState(post, request);
 
         if (request.getTags() != null && !request.getTags().isEmpty()) {
             post.setTags(resolveOrCreateTags(request.getTags()));
@@ -216,7 +230,7 @@ public class PostService {
         post.setContent(request.getContent());
         post.setPremium(request.isPremium());
         post.setPrice(request.getPrice());
-        post.setStatus(request.isSaveAsDraft() ? PostStatus.DRAFT : PostStatus.PUBLISHED);
+        applyPublishingState(post, request);
         if (request.getCoverImageUrl() != null) {
             post.setCoverImageUrl(request.getCoverImageUrl());
         }
@@ -286,10 +300,23 @@ public class PostService {
 
     @Transactional
     public List<PostResponse> getMyDrafts(String userEmail) {
-        return postRepository.findByAuthorEmailAndStatus(userEmail, PostStatus.DRAFT)
+        return postRepository.findDraftAndScheduledByAuthorEmail(userEmail)
                 .stream()
                 .map(this::convertToResponse)
                 .collect(Collectors.toList());
+    }
+
+    @Scheduled(cron = "0 * * * * *")
+    @Transactional
+    public void publishScheduledPosts() {
+        List<Post> duePosts = postRepository.findByStatusAndScheduledPublishAtLessThanEqual(PostStatus.PUBLISHED, LocalDateTime.now());
+        if (duePosts.isEmpty()) {
+            return;
+        }
+        for (Post post : duePosts) {
+            post.setScheduledPublishAt(null);
+        }
+        postRepository.saveAll(duePosts);
     }
 
     @Transactional
@@ -423,6 +450,13 @@ public class PostService {
             seriesSize = (int) postRepository.countBySeries_Id(Objects.requireNonNull(seriesId));
         }
 
+        boolean scheduledForFuture = post.getStatus() == PostStatus.PUBLISHED
+            && post.getScheduledPublishAt() != null
+            && post.getScheduledPublishAt().isAfter(LocalDateTime.now());
+        String responseStatus = post.getStatus() == PostStatus.DRAFT
+            ? PostStatus.DRAFT.name()
+            : (scheduledForFuture ? "SCHEDULED" : PostStatus.PUBLISHED.name());
+
         return PostResponse.builder()
                 .id(post.getId())
                 .title(post.getTitle())
@@ -445,7 +479,8 @@ public class PostService {
                 .viewCount(post.getViewCount())
                 .readingTimeMinutes(readingTimeMinutes)
                 .tags(tagNames)
-                .status(post.getStatus() != null ? post.getStatus().name() : "PUBLISHED")
+                .status(responseStatus)
+                .scheduledPublishAt(post.getScheduledPublishAt())
                 .bookmarkedByCurrentUser(bookmarkedByCurrentUser)
                 .coverImageUrl(post.getCoverImageUrl())
                 .seriesId(seriesId)
@@ -554,6 +589,40 @@ public class PostService {
         int readingTimeMinutes = Math.max(1, (int) Math.ceil((double) countWords(content) / 200.0));
         PostAiSummary summary = postAiSummaryGenerator.generate(post.getTitle(), content, readingTimeMinutes);
         post.setAiSummary(summary);
+    }
+
+    private void applyPublishingState(Post post, PostRequest request) {
+        LocalDateTime scheduleAt = request.getScheduledPublishAt();
+        if (request.isSaveAsDraft()) {
+            post.setStatus(PostStatus.DRAFT);
+            post.setScheduledPublishAt(null);
+            return;
+        }
+
+        if (scheduleAt != null && scheduleAt.isAfter(LocalDateTime.now())) {
+            post.setStatus(PostStatus.PUBLISHED);
+            post.setScheduledPublishAt(scheduleAt);
+            return;
+        }
+
+        post.setStatus(PostStatus.PUBLISHED);
+        post.setScheduledPublishAt(null);
+    }
+
+    private void publishIfDue(Post post) {
+        if (post.getStatus() == PostStatus.PUBLISHED
+                && post.getScheduledPublishAt() != null
+                && !post.getScheduledPublishAt().isAfter(LocalDateTime.now())) {
+            post.setScheduledPublishAt(null);
+            postRepository.save(post);
+        }
+    }
+
+    private boolean isPubliclyVisible(Post post) {
+        if (post.getStatus() != PostStatus.PUBLISHED) {
+            return false;
+        }
+        return post.getScheduledPublishAt() == null || !post.getScheduledPublishAt().isAfter(LocalDateTime.now());
     }
 
     private int countWords(String content) {

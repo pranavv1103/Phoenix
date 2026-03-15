@@ -6,6 +6,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -29,6 +30,8 @@ public class PostRequest {
     private List<String> tags = new ArrayList<>();
 
     private boolean saveAsDraft = false;
+
+    private LocalDateTime scheduledPublishAt;
 
     private String coverImageUrl;
 

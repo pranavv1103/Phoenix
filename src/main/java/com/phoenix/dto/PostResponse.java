@@ -44,6 +44,7 @@ public class PostResponse {
     private int readingTimeMinutes;
     private List<String> tags;
     private String status;
+    private LocalDateTime scheduledPublishAt;
     private boolean bookmarkedByCurrentUser;
     private String coverImageUrl;
     // Series fields

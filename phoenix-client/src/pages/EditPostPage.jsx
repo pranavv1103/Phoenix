@@ -6,6 +6,18 @@ import MDEditor from '@uiw/react-md-editor';
 
 const AUTOSAVE_INTERVAL = 30000; // 30 seconds
 
+const toDateTimeLocalValue = (isoString) => {
+  if (!isoString) return '';
+  const date = new Date(isoString);
+  const timezoneOffset = date.getTimezoneOffset() * 60000;
+  return new Date(date.getTime() - timezoneOffset).toISOString().slice(0, 16);
+};
+
+const normalizeDateTimeLocal = (value) => {
+  if (!value) return null;
+  return value.length === 16 ? `${value}:00` : value;
+};
+
 export default function EditPostPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -17,6 +29,7 @@ export default function EditPostPage() {
   const [tags, setTags] = useState([]);
   const [tagInput, setTagInput] = useState('');
   const [coverImageUrl, setCoverImageUrl] = useState('');
+  const [scheduledPublishAt, setScheduledPublishAt] = useState('');
   const [coverImageDragging, setCoverImageDragging] = useState(false);
   const imageInputRef = useRef(null);
   const [loading, setLoading] = useState(true);
@@ -80,7 +93,7 @@ export default function EditPostPage() {
     if (!title && !content) return;
     
     setAutoSaveStatus('saving');
-    const data = { title, content, isPremium, price, tags, coverImageUrl, timestamp: Date.now() };
+    const data = { title, content, isPremium, price, tags, coverImageUrl, scheduledPublishAt, timestamp: Date.now() };
     localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(data));
     
     // Short delay so the spinner animates before showing 'saved'
@@ -90,7 +103,7 @@ export default function EditPostPage() {
       hasUnsavedChanges.current = false;
       // Note: we intentionally do NOT clear status — 'Saved at HH:MM' stays visible
     }, 300);
-  }, [id, title, content, isPremium, price, tags, coverImageUrl]);
+  }, [id, title, content, isPremium, price, tags, coverImageUrl, scheduledPublishAt]);
 
   // Setup auto-save interval
   useEffect(() => {
@@ -144,10 +157,11 @@ export default function EditPostPage() {
         isPremium !== initialData.current.isPremium ||
         price !== initialData.current.price ||
         JSON.stringify(tags) !== JSON.stringify(initialData.current.tags) ||
-        coverImageUrl !== initialData.current.coverImageUrl;
+        coverImageUrl !== initialData.current.coverImageUrl ||
+        scheduledPublishAt !== initialData.current.scheduledPublishAt;
       hasUnsavedChanges.current = changed;
     }
-  }, [title, content, isPremium, price, tags, coverImageUrl, post]);
+  }, [title, content, isPremium, price, tags, coverImageUrl, scheduledPublishAt, post]);
 
   useEffect(() => {
     const fetchPost = async () => {
@@ -173,7 +187,8 @@ export default function EditPostPage() {
           isPremium: postIsPremium,
           price: postPrice,
           tags: postTags,
-          coverImageUrl: postData.coverImageUrl || ''
+          coverImageUrl: postData.coverImageUrl || '',
+          scheduledPublishAt: toDateTimeLocalValue(postData.scheduledPublishAt),
         };
         
         // Check for auto-saved data
@@ -190,6 +205,7 @@ export default function EditPostPage() {
               setIsPremium(data.isPremium ?? postIsPremium);
               setPrice(data.price || postPrice);
               setTags(data.tags || postTags);
+              setScheduledPublishAt(data.scheduledPublishAt || toDateTimeLocalValue(postData.scheduledPublishAt));
               if (data.coverImageUrl !== undefined) setCoverImageUrl(data.coverImageUrl);
               else setCoverImageUrl(postData.coverImageUrl || '');
               setLastSaved(new Date(data.timestamp));
@@ -200,6 +216,7 @@ export default function EditPostPage() {
               setIsPremium(postIsPremium);
               setPrice(postPrice);
               setTags(postTags);
+              setScheduledPublishAt(toDateTimeLocalValue(postData.scheduledPublishAt));
               setCoverImageUrl(postData.coverImageUrl || '');
             }
           } catch {
@@ -209,6 +226,7 @@ export default function EditPostPage() {
             setIsPremium(postIsPremium);
             setPrice(postPrice);
             setTags(postTags);
+            setScheduledPublishAt(toDateTimeLocalValue(postData.scheduledPublishAt));
             setCoverImageUrl(postData.coverImageUrl || '');
           }
         } else {
@@ -217,6 +235,7 @@ export default function EditPostPage() {
           setIsPremium(postIsPremium);
           setPrice(postPrice);
           setTags(postTags);
+          setScheduledPublishAt(toDateTimeLocalValue(postData.scheduledPublishAt));
           setCoverImageUrl(postData.coverImageUrl || '');
         }
         setPostStatus(postData.status || 'PUBLISHED');
@@ -248,7 +267,18 @@ export default function EditPostPage() {
       setSubmitting(true);
       setError('');
       const priceInPaise = isPremium ? Math.round(parseFloat(price || '0') * 100) : 0;
-      await client.put(`/api/posts/${id}`, { title, content, isPremium, price: priceInPaise, tags, saveAsDraft, coverImageUrl: coverImageUrl || null, seriesId: seriesId || null, seriesOrder: seriesId ? seriesOrder : 0 });
+      await client.put(`/api/posts/${id}`, {
+        title,
+        content,
+        isPremium,
+        price: priceInPaise,
+        tags,
+        saveAsDraft,
+        scheduledPublishAt: saveAsDraft ? null : normalizeDateTimeLocal(scheduledPublishAt),
+        coverImageUrl: coverImageUrl || null,
+        seriesId: seriesId || null,
+        seriesOrder: seriesId ? seriesOrder : 0,
+      });
       const AUTOSAVE_KEY = `phoenix_edit_post_${id}_autosave`;
       localStorage.removeItem(AUTOSAVE_KEY); // Clear auto-save on success
       navigate(`/posts/${id}`);
@@ -272,13 +302,15 @@ export default function EditPostPage() {
       setPrice(updated.price ? (updated.price / 100).toString() : '');
       setTags(updated.tags || []);
       setCoverImageUrl(updated.coverImageUrl || '');
+      setScheduledPublishAt(toDateTimeLocalValue(updated.scheduledPublishAt));
       initialData.current = {
         title: updated.title || '',
         content: updated.content || '',
         isPremium: updated.isPremium || false,
         price: updated.price ? (updated.price / 100).toString() : '',
         tags: updated.tags || [],
-        coverImageUrl: updated.coverImageUrl || ''
+        coverImageUrl: updated.coverImageUrl || '',
+        scheduledPublishAt: toDateTimeLocalValue(updated.scheduledPublishAt),
       };
       setPost(updated);
       setShowVersionPreview(false);
@@ -338,6 +370,11 @@ export default function EditPostPage() {
               {postStatus === 'DRAFT' && (
                 <span className="px-2.5 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-xs font-semibold rounded-full border border-amber-200 dark:border-amber-700/50">
                   Draft
+                </span>
+              )}
+              {postStatus === 'SCHEDULED' && (
+                <span className="px-2.5 py-1 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 text-xs font-semibold rounded-full border border-indigo-200 dark:border-indigo-700/50">
+                  Scheduled
                 </span>
               )}
             </div>
@@ -674,6 +711,36 @@ export default function EditPostPage() {
               )}
             </div>
 
+            <div className="p-5 bg-indigo-50 dark:bg-slate-800 rounded-2xl border border-indigo-200 dark:border-indigo-700/50">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <svg className="w-4 h-4 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <label className="text-sm font-semibold text-gray-800 dark:text-slate-200">Schedule Publish</label>
+                </div>
+                {scheduledPublishAt && (
+                  <button
+                    type="button"
+                    onClick={() => setScheduledPublishAt('')}
+                    className="text-xs font-semibold text-indigo-700 dark:text-indigo-400 hover:underline"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+              <p className="text-xs text-gray-500 dark:text-slate-400 mb-3">
+                Leave empty to publish immediately. Choose a future date and time to auto-publish.
+              </p>
+              <input
+                type="datetime-local"
+                value={scheduledPublishAt}
+                min={toDateTimeLocalValue(new Date().toISOString())}
+                onChange={(e) => setScheduledPublishAt(e.target.value)}
+                className="w-full sm:w-72 px-3 py-2 text-sm border border-indigo-300 dark:border-indigo-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-lg focus:outline-none focus:border-indigo-500 transition-all"
+              />
+            </div>
+
             <div className="flex flex-wrap gap-3 pt-4 border-t border-gray-100 dark:border-slate-800">
               <button
                 type="submit"
@@ -688,7 +755,7 @@ export default function EditPostPage() {
                 ) : (
                   <>
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-                    {postStatus === 'DRAFT' ? 'Publish Now' : 'Save Changes'}
+                    {scheduledPublishAt ? 'Schedule Update' : postStatus === 'DRAFT' ? 'Publish Now' : 'Save Changes'}
                   </>
                 )}
               </button>

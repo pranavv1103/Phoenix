@@ -6,6 +6,18 @@ import MDEditor from '@uiw/react-md-editor';
 const AUTOSAVE_KEY = 'phoenix_create_post_autosave';
 const AUTOSAVE_INTERVAL = 30000; // 30 seconds
 
+const toDateTimeLocalValue = (isoString) => {
+  if (!isoString) return '';
+  const date = new Date(isoString);
+  const timezoneOffset = date.getTimezoneOffset() * 60000;
+  return new Date(date.getTime() - timezoneOffset).toISOString().slice(0, 16);
+};
+
+const normalizeDateTimeLocal = (value) => {
+  if (!value) return null;
+  return value.length === 16 ? `${value}:00` : value;
+};
+
 export default function CreatePostPage() {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
@@ -25,6 +37,7 @@ export default function CreatePostPage() {
   const [seriesId, setSeriesId] = useState('');
   const [seriesOrder, setSeriesOrder] = useState(1);
   const [seriesList, setSeriesList] = useState([]);
+  const [scheduledPublishAt, setScheduledPublishAt] = useState('');
   const [showCreateSeries, setShowCreateSeries] = useState(false);
   const [newSeriesName, setNewSeriesName] = useState('');
   const [newSeriesDesc, setNewSeriesDesc] = useState('');
@@ -49,7 +62,7 @@ export default function CreatePostPage() {
     if (!title && !content && tags.length === 0) return;
     
     setAutoSaveStatus('saving');
-    const data = { title, content, isPremium, price, tags, coverImageUrl, timestamp: Date.now() };
+    const data = { title, content, isPremium, price, tags, coverImageUrl, scheduledPublishAt, timestamp: Date.now() };
     localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(data));
     
     // Short delay so the spinner animates before showing 'saved'
@@ -59,7 +72,7 @@ export default function CreatePostPage() {
       hasUnsavedChanges.current = false;
       // Note: we intentionally do NOT clear status — 'Saved at HH:MM' stays visible
     }, 300);
-  }, [title, content, isPremium, price, tags]);
+  }, [title, content, isPremium, price, tags, coverImageUrl, scheduledPublishAt]);
 
   // Restore from localStorage on mount
   useEffect(() => {
@@ -87,6 +100,7 @@ export default function CreatePostPage() {
       setPrice(data.price || '');
       setTags(data.tags || []);
       if (data.coverImageUrl) setCoverImageUrl(data.coverImageUrl);
+      setScheduledPublishAt(data.scheduledPublishAt || '');
       setLastSaved(new Date(data.timestamp));
     }
     setShowRestorePrompt(false);
@@ -112,12 +126,12 @@ export default function CreatePostPage() {
     return () => {
       if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
     };
-  }, [title, content, isPremium, price, tags, coverImageUrl, autoSave]);
+  }, [title, content, isPremium, price, tags, coverImageUrl, scheduledPublishAt, autoSave]);
 
   // Track changes
   useEffect(() => {
     hasUnsavedChanges.current = true;
-  }, [title, content, isPremium, price, tags, coverImageUrl]);
+  }, [title, content, isPremium, price, tags, coverImageUrl, scheduledPublishAt]);
 
   // Fetch user's series on mount
   useEffect(() => {
@@ -168,7 +182,18 @@ export default function CreatePostPage() {
     }
     try {
       const priceInPaise = isPremium ? Math.round(parseFloat(price || '0') * 100) : 0;
-      const response = await client.post('/api/posts', { title, content, isPremium, price: priceInPaise, tags, saveAsDraft, coverImageUrl: coverImageUrl || null, seriesId: seriesId || null, seriesOrder: seriesId ? seriesOrder : 0 });
+      const response = await client.post('/api/posts', {
+        title,
+        content,
+        isPremium,
+        price: priceInPaise,
+        tags,
+        saveAsDraft,
+        scheduledPublishAt: saveAsDraft ? null : normalizeDateTimeLocal(scheduledPublishAt),
+        coverImageUrl: coverImageUrl || null,
+        seriesId: seriesId || null,
+        seriesOrder: seriesId ? seriesOrder : 0,
+      });
       localStorage.removeItem(AUTOSAVE_KEY); // Clear auto-save on success
       navigate(`/posts/${response.data.data.id}`);
     } catch (err) {
@@ -442,6 +467,36 @@ export default function CreatePostPage() {
               )}
             </div>
 
+            <div className="p-5 bg-indigo-50 dark:bg-slate-800 rounded-2xl border border-indigo-200 dark:border-indigo-700/50">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <svg className="w-4 h-4 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <label className="text-sm font-semibold text-gray-800 dark:text-slate-200">Schedule Publish</label>
+                </div>
+                {scheduledPublishAt && (
+                  <button
+                    type="button"
+                    onClick={() => setScheduledPublishAt('')}
+                    className="text-xs font-semibold text-indigo-700 dark:text-indigo-400 hover:underline"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+              <p className="text-xs text-gray-500 dark:text-slate-400 mb-3">
+                Leave empty to publish immediately. Choose a future date and time to auto-publish.
+              </p>
+              <input
+                type="datetime-local"
+                value={scheduledPublishAt}
+                min={toDateTimeLocalValue(new Date().toISOString())}
+                onChange={(e) => setScheduledPublishAt(e.target.value)}
+                className="w-full sm:w-72 px-3 py-2 text-sm border border-indigo-300 dark:border-indigo-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-lg focus:outline-none focus:border-indigo-500 transition-all"
+              />
+            </div>
+
             <div className="flex flex-wrap gap-3 pt-2">
               <button
                 type="submit"
@@ -451,12 +506,12 @@ export default function CreatePostPage() {
                 {loading ? (
                   <>
                     <div className="w-4 h-4 border-2 border-white/40 dark:border-gray-900/40 border-t-white dark:border-t-gray-900 rounded-full animate-spin" />
-                    Publishing...
+                    {scheduledPublishAt ? 'Scheduling...' : 'Publishing...'}
                   </>
                 ) : (
                   <>
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-                    Publish Post
+                    {scheduledPublishAt ? 'Schedule Post' : 'Publish Post'}
                   </>
                 )}
               </button>
