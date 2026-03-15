@@ -149,6 +149,14 @@ export default function Navbar() {
                 )}
 
                 <Link
+                  to="/ai-assistant"
+                  className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/40 rounded-full hover:bg-orange-100 dark:hover:bg-orange-900/50 transition-colors border border-orange-200 dark:border-orange-800"
+                >
+                  <span className="text-base leading-none">✦</span>
+                  AI
+                </Link>
+
+                <Link
                   to="/create"
                   className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-gray-900 dark:bg-white dark:text-gray-900 rounded-full hover:bg-gray-700 dark:hover:bg-gray-200 transition-colors shadow-sm"
                 >
@@ -423,6 +431,14 @@ export default function Navbar() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                   </svg>
                   Write a story
+                </Link>
+                <Link
+                  to="/ai-assistant"
+                  onClick={() => setMobileOpen(false)}
+                  className="flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-orange-600 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-950/40 rounded-xl transition-colors"
+                >
+                  <span className="w-4 h-4 text-center text-base leading-none">✦</span>
+                  AI Writing Assistant
                 </Link>
                 <button
                   onClick={() => { navigate(`/profile/${encodeURIComponent(user?.name?.trim())}`); setMobileOpen(false); }}
