@@ -4,6 +4,7 @@ import com.phoenix.dto.ApiResponse;
 import com.phoenix.dto.PagedResponse;
 import com.phoenix.dto.PostRequest;
 import com.phoenix.dto.PostResponse;
+import com.phoenix.dto.PostVersionResponse;
 import com.phoenix.service.PostService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -94,6 +95,28 @@ public class PostController {
     @GetMapping("/{id}/related")
     public ResponseEntity<ApiResponse<List<PostResponse>>> getRelatedPosts(@PathVariable @NonNull UUID id) {
         return ResponseEntity.ok(ApiResponse.success("Related posts retrieved", postService.getRelatedPosts(id)));
+    }
+
+    // -------------------------------------------------------------------------
+    // Version History
+    // -------------------------------------------------------------------------
+
+    /** Returns the stored previous snapshot, or null data if none exists yet. */
+    @GetMapping("/{id}/versions/previous")
+    public ResponseEntity<ApiResponse<PostVersionResponse>> getPreviousVersion(@PathVariable @NonNull UUID id) {
+        String userEmail = getCurrentUserEmail();
+        PostVersionResponse version = postService.getPreviousVersion(id, userEmail);
+        return ResponseEntity.ok(ApiResponse.success(
+                version == null ? "No previous version found" : "Previous version retrieved",
+                version));
+    }
+
+    /** Swaps the current post content with the stored previous version (undo/redo). */
+    @PostMapping("/{id}/versions/restore")
+    public ResponseEntity<ApiResponse<PostResponse>> restoreVersion(@PathVariable @NonNull UUID id) {
+        String userEmail = getCurrentUserEmail();
+        PostResponse post = postService.restoreVersion(id, userEmail);
+        return ResponseEntity.ok(ApiResponse.success("Version restored successfully", post));
     }
 
     private String getCurrentUserEmail() {

@@ -37,6 +37,12 @@ export default function EditPostPage() {
   const [newSeriesName, setNewSeriesName] = useState('');
   const [newSeriesDesc, setNewSeriesDesc] = useState('');
   const [creatingSeries, setCreatingSeries] = useState(false);
+  // Version history
+  const [previousVersion, setPreviousVersion] = useState(null);
+  const [showVersionPanel, setShowVersionPanel] = useState(false);
+  const [showVersionPreview, setShowVersionPreview] = useState(false);
+  const [restoring, setRestoring] = useState(false);
+  const [versionMessage, setVersionMessage] = useState('');
 
   const handleImageFile = useCallback((file) => {
     if (!file || !file.type.startsWith('image/')) return;
@@ -217,6 +223,13 @@ export default function EditPostPage() {
         // Pre-fill series
         setSeriesId(postData.seriesId || '');
         setSeriesOrder(postData.seriesOrder || 1);
+        // Load previous version snapshot
+        try {
+          const versionRes = await client.get(`/api/posts/${id}/versions/previous`);
+          setPreviousVersion(versionRes.data.data || null);
+        } catch {
+          setPreviousVersion(null);
+        }
       } catch {
         setError('Failed to load post');
       } finally {
@@ -240,6 +253,40 @@ export default function EditPostPage() {
       setError(err.response?.data?.message || 'Failed to update post');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleRestoreVersion = async () => {
+    if (!window.confirm('Restore to previous version?\nYour current content will become the new "previous" snapshot so you can undo this.')) return;
+    setRestoring(true);
+    setVersionMessage('');
+    try {
+      const res = await client.post(`/api/posts/${id}/versions/restore`);
+      const updated = res.data.data;
+      setTitle(updated.title || '');
+      setContent(updated.content || '');
+      setIsPremium(updated.isPremium || false);
+      setPrice(updated.price ? (updated.price / 100).toString() : '');
+      setTags(updated.tags || []);
+      setCoverImageUrl(updated.coverImageUrl || '');
+      initialData.current = {
+        title: updated.title || '',
+        content: updated.content || '',
+        isPremium: updated.isPremium || false,
+        price: updated.price ? (updated.price / 100).toString() : '',
+        tags: updated.tags || [],
+        coverImageUrl: updated.coverImageUrl || ''
+      };
+      setPost(updated);
+      setShowVersionPreview(false);
+      setVersionMessage('Restored! Current content is now saved as the previous snapshot.');
+      // Refresh snapshot (old current is now the stored version)
+      const versionRes = await client.get(`/api/posts/${id}/versions/previous`);
+      setPreviousVersion(versionRes.data.data || null);
+    } catch {
+      setVersionMessage('Failed to restore version. Please try again.');
+    } finally {
+      setRestoring(false);
     }
   };
 
@@ -550,6 +597,89 @@ export default function EditPostPage() {
               </button>
             </div>
           </form>
+
+          {/* Version History Panel */}
+          {previousVersion && (
+            <div className="mt-6 pt-6 border-t border-gray-100 dark:border-slate-800">
+              <button
+                type="button"
+                onClick={() => setShowVersionPanel(v => !v)}
+                className="flex items-center gap-2 w-full text-sm font-semibold text-gray-700 dark:text-slate-300 hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
+              >
+                <svg className="w-4 h-4 text-purple-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Version History
+                <span className="ml-2 px-2 py-0.5 text-xs bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 rounded-full border border-purple-200 dark:border-purple-700/50">
+                  1 snapshot saved
+                </span>
+                <svg
+                  className={`w-4 h-4 ml-auto transition-transform ${showVersionPanel ? 'rotate-180' : ''}`}
+                  fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+
+              {showVersionPanel && (
+                <div className="mt-4 p-4 bg-purple-50 dark:bg-slate-800/60 rounded-xl border border-purple-100 dark:border-slate-700 space-y-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-xs font-medium text-gray-500 dark:text-slate-400 mb-0.5">Previous snapshot</p>
+                      <p className="text-sm font-semibold text-gray-800 dark:text-slate-200 truncate">{previousVersion.title}</p>
+                      <p className="text-xs text-gray-400 dark:text-slate-500 mt-0.5">
+                        {previousVersion.savedAt && new Date(previousVersion.savedAt).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
+                      </p>
+                    </div>
+                    <div className="flex gap-2 flex-shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => setShowVersionPreview(v => !v)}
+                        className="px-3 py-1.5 text-xs font-semibold text-purple-700 dark:text-purple-400 border border-purple-200 dark:border-purple-700/60 rounded-full hover:bg-purple-100 dark:hover:bg-purple-900/20 transition-colors"
+                      >
+                        {showVersionPreview ? 'Hide' : 'Preview'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleRestoreVersion}
+                        disabled={restoring}
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-purple-600 hover:bg-purple-700 rounded-full transition-colors disabled:opacity-50"
+                      >
+                        {restoring ? (
+                          <><div className="w-3 h-3 border-2 border-white/40 border-t-white rounded-full animate-spin" /> Restoring...</>
+                        ) : (
+                          <>
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                            Restore
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  {versionMessage && (
+                    <p className={`text-xs font-medium ${versionMessage.startsWith('Failed') ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
+                      {versionMessage}
+                    </p>
+                  )}
+
+                  {showVersionPreview && (
+                    <div className="border-t border-purple-100 dark:border-slate-700 pt-3">
+                      <p className="text-xs font-medium text-gray-500 dark:text-slate-400 mb-2">Content preview (read-only)</p>
+                      <div data-color-mode="auto" className="rounded-lg overflow-hidden border border-purple-100 dark:border-slate-700">
+                        <MDEditor.Markdown
+                          source={previousVersion.content || ''}
+                          className="!bg-white dark:!bg-slate-900 p-3 text-sm max-h-64 overflow-y-auto"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>

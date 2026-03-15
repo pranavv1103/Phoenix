@@ -4,7 +4,9 @@ import com.phoenix.dto.PagedResponse;
 import com.phoenix.dto.PostAiSummaryResponse;
 import com.phoenix.dto.PostRequest;
 import com.phoenix.dto.PostResponse;
+import com.phoenix.dto.PostVersionResponse;
 import com.phoenix.entity.Post;
+import com.phoenix.entity.PostVersion;
 import com.phoenix.entity.PostAiSummary;
 import com.phoenix.entity.PostStatus;
 import com.phoenix.entity.Reaction;
@@ -21,6 +23,7 @@ import com.phoenix.repository.FollowRepository;
 import com.phoenix.repository.LikeRepository;
 import com.phoenix.repository.PaymentRepository;
 import com.phoenix.repository.PostRepository;
+import com.phoenix.repository.PostVersionRepository;
 import com.phoenix.repository.PostViewRepository;
 import com.phoenix.entity.PostView;
 import com.phoenix.repository.ReactionRepository;
@@ -39,6 +42,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.lang.NonNull;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -61,6 +65,7 @@ public class PostService {
     private final FollowRepository followRepository;
     private final SeriesRepository seriesRepository;
     private final PostAiSummaryGenerator postAiSummaryGenerator;
+    private final PostVersionRepository postVersionRepository;
 
     @Transactional
     public PagedResponse<PostResponse> getAllPosts(int page, int size, String sort, String tag) {
@@ -225,6 +230,10 @@ public class PostService {
             post.setSeries(null);
         }
         post.setSeriesOrder(request.getSeriesOrder());
+
+        // Snapshot current content as previous version before applying changes
+        snapshotCurrentVersion(post);
+
         refreshAiSummary(post);
 
         Post updatedPost = postRepository.save(post);
@@ -252,6 +261,7 @@ public class PostService {
         likeRepository.deleteByPostId(id);
         commentRepository.deleteRepliesByPostId(id);
         commentRepository.deleteByPostId(id);
+        postVersionRepository.deleteByPostId(id);
         postRepository.delete(post);
     }
 
@@ -269,6 +279,7 @@ public class PostService {
         likeRepository.deleteByPostId(id);
         commentRepository.deleteRepliesByPostId(id);
         commentRepository.deleteByPostId(id);
+        postVersionRepository.deleteByPostId(id);
         postRepository.delete(Objects.requireNonNull(post));
     }
 
@@ -441,6 +452,98 @@ public class PostService {
                 .seriesOrder(seriesOrder)
                 .seriesSize(seriesSize)
                 .aiSummary(toAiSummaryResponse(summary, readingTimeMinutes))
+                .build();
+    }
+
+    // -------------------------------------------------------------------------
+    // Version History
+    // -------------------------------------------------------------------------
+
+    public PostVersionResponse getPreviousVersion(UUID postId, String userEmail) {
+        Post post = postRepository.findById(Objects.requireNonNull(postId))
+                .orElseThrow(() -> new PostNotFoundException("Post not found with id: " + postId));
+        if (!post.getAuthor().getEmail().equals(userEmail)) {
+            throw new UnauthorizedException("Not authorized to view version history");
+        }
+        return postVersionRepository.findByPostId(postId)
+                .map(this::toVersionResponse)
+                .orElse(null);
+    }
+
+    @Transactional
+    public PostResponse restoreVersion(UUID postId, String userEmail) {
+        Post post = postRepository.findById(Objects.requireNonNull(postId))
+                .orElseThrow(() -> new PostNotFoundException("Post not found with id: " + postId));
+        if (!post.getAuthor().getEmail().equals(userEmail)) {
+            throw new UnauthorizedException("Not authorized to restore version");
+        }
+
+        PostVersion version = postVersionRepository.findByPostId(postId)
+                .orElseThrow(() -> new IllegalStateException("No previous version found for this post"));
+
+        // Read old snapshot fields before overwriting
+        String oldTitle       = version.getTitle();
+        String oldContent     = version.getContent();
+        String oldCoverImage  = version.getCoverImageUrl();
+        boolean oldIsPremium  = version.isPremium();
+        int     oldPrice      = version.getPrice();
+        String  oldTagsCsv    = version.getTagsCsv();
+
+        // Swap: save current post state into the version record
+        List<String> currentTagNames = post.getTags().stream()
+                .map(Tag::getName).collect(Collectors.toList());
+        version.setTitle(post.getTitle());
+        version.setContent(post.getContent());
+        version.setCoverImageUrl(post.getCoverImageUrl());
+        version.setPremium(post.isPremium());
+        version.setPrice(post.getPrice());
+        version.setTagsCsv(String.join(",", currentTagNames));
+        version.setSavedAt(LocalDateTime.now());
+        postVersionRepository.save(version);
+
+        // Apply old snapshot into post
+        post.setTitle(oldTitle);
+        post.setContent(oldContent);
+        post.setCoverImageUrl(oldCoverImage);
+        post.setPremium(oldIsPremium);
+        post.setPrice(oldPrice);
+        post.getTags().clear();
+        if (oldTagsCsv != null && !oldTagsCsv.isBlank()) {
+            post.getTags().addAll(resolveOrCreateTags(List.of(oldTagsCsv.split(","))));
+        }
+        refreshAiSummary(post);
+        return convertToResponse(postRepository.save(post));
+    }
+
+    private void snapshotCurrentVersion(Post post) {
+        List<String> tagNames = post.getTags().stream()
+                .map(Tag::getName).collect(Collectors.toList());
+        PostVersion version = postVersionRepository.findByPostId(post.getId())
+                .orElseGet(() -> PostVersion.builder().postId(post.getId()).build());
+        version.setTitle(post.getTitle());
+        version.setContent(post.getContent());
+        version.setCoverImageUrl(post.getCoverImageUrl());
+        version.setPremium(post.isPremium());
+        version.setPrice(post.getPrice());
+        version.setTagsCsv(String.join(",", tagNames));
+        version.setSavedAt(LocalDateTime.now());
+        postVersionRepository.save(version);
+    }
+
+    private PostVersionResponse toVersionResponse(PostVersion version) {
+        List<String> tags = (version.getTagsCsv() == null || version.getTagsCsv().isBlank())
+                ? List.of()
+                : List.of(version.getTagsCsv().split(","));
+        return PostVersionResponse.builder()
+                .id(version.getId())
+                .postId(version.getPostId())
+                .title(version.getTitle())
+                .content(version.getContent())
+                .coverImageUrl(version.getCoverImageUrl())
+                .isPremium(version.isPremium())
+                .price(version.getPrice())
+                .tags(tags)
+                .savedAt(version.getSavedAt())
                 .build();
     }
 
