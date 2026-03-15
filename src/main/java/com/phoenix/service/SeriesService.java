@@ -103,7 +103,7 @@ public class SeriesService {
 
     @Transactional
     public List<PostResponse> getSeriesPosts(UUID id) {
-        java.time.LocalDateTime now = java.time.LocalDateTime.now();
+        java.time.LocalDateTime now = java.time.LocalDateTime.now(java.time.ZoneOffset.UTC);
         return postRepository.findBySeries_IdOrderBySeriesOrder(id)
                 .stream()
                 .filter(p -> p.getStatus() == com.phoenix.entity.PostStatus.PUBLISHED

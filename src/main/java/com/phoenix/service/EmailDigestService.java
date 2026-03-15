@@ -40,8 +40,9 @@ public class EmailDigestService {
     public void sendWeeklyDigest() {
         log.info("Starting weekly email digest job...");
         
-        LocalDateTime oneWeekAgo = LocalDateTime.now().minusWeeks(1);
-        List<Post> topPosts = postRepository.findTopPostsSince(oneWeekAgo, PageRequest.of(0, 5));
+        LocalDateTime now = LocalDateTime.now(java.time.ZoneOffset.UTC);
+        LocalDateTime oneWeekAgo = now.minusWeeks(1);
+        List<Post> topPosts = postRepository.findTopPostsSince(oneWeekAgo, now, PageRequest.of(0, 5));
 
         if (topPosts.isEmpty()) {
             log.info("No posts from the past week. Skipping digest.");

@@ -71,18 +71,19 @@ public class PostService {
 
     @Transactional
     public PagedResponse<PostResponse> getAllPosts(int page, int size, String sort, String tag) {
+        LocalDateTime now = utcNow();
         Page<Post> postPage;
         if (tag != null && !tag.trim().isEmpty()) {
             String t = tag.trim().toLowerCase();
             if (isMostLiked(sort)) {
-                postPage = postRepository.findByTagNameOrderByLikeCountDesc(t, PageRequest.of(page, size));
+                postPage = postRepository.findByTagNameOrderByLikeCountDesc(t, now, PageRequest.of(page, size));
             } else {
-                postPage = postRepository.findVisibleByTag(t, buildPageable(page, size, sort));
+                postPage = postRepository.findVisibleByTag(t, now, buildPageable(page, size, sort));
             }
         } else if (isMostLiked(sort)) {
-            postPage = postRepository.findAllOrderByLikeCountDesc(PageRequest.of(page, size));
+            postPage = postRepository.findAllOrderByLikeCountDesc(now, PageRequest.of(page, size));
         } else {
-            postPage = postRepository.findVisible(buildPageable(page, size, sort));
+            postPage = postRepository.findVisible(now, buildPageable(page, size, sort));
         }
         return buildPagedResponse(postPage);
     }
@@ -94,20 +95,21 @@ public class PostService {
         }
 
         Pageable pageable = buildPageable(page, size, sort);
+        LocalDateTime now = utcNow();
         Page<Post> postPage;
 
         if (tag != null && !tag.trim().isEmpty()) {
             String t = tag.trim().toLowerCase();
             if (isMostLiked(sort)) {
                 postPage = postRepository.findByTitleContainingIgnoreCaseAndTagNameOrderByLikeCountDesc(
-                        query.trim(), t, PageRequest.of(page, size));
+                        query.trim(), t, now, PageRequest.of(page, size));
             } else {
-                postPage = postRepository.findVisibleByTitleAndTag(query.trim(), t, pageable);
+                postPage = postRepository.findVisibleByTitleAndTag(query.trim(), t, now, pageable);
             }
         } else if (isMostLiked(sort)) {
-            postPage = postRepository.findByTitleContainingIgnoreCaseOrderByLikeCountDesc(query.trim(), PageRequest.of(page, size));
+            postPage = postRepository.findByTitleContainingIgnoreCaseOrderByLikeCountDesc(query.trim(), now, PageRequest.of(page, size));
         } else {
-            postPage = postRepository.findVisibleByTitle(query.trim(), pageable);
+            postPage = postRepository.findVisibleByTitle(query.trim(), now, pageable);
         }
 
         return buildPagedResponse(postPage);
@@ -301,7 +303,7 @@ public class PostService {
 
     @Transactional
     public List<PostResponse> getMyDrafts(String userEmail) {
-        return postRepository.findDraftAndScheduledByAuthorEmail(userEmail)
+        return postRepository.findDraftAndScheduledByAuthorEmail(userEmail, utcNow())
                 .stream()
                 .map(this::convertToResponse)
                 .collect(Collectors.toList());
@@ -322,7 +324,7 @@ public class PostService {
 
     @Transactional
     public PagedResponse<PostResponse> getTrendingPosts(int page, int size) {
-        Page<Post> postPage = postRepository.findAllOrderByLikeCountDesc(PageRequest.of(page, size));
+        Page<Post> postPage = postRepository.findAllOrderByLikeCountDesc(utcNow(), PageRequest.of(page, size));
         return buildPagedResponse(postPage);
     }
 
@@ -342,7 +344,7 @@ public class PostService {
                     .last(true)
                     .build();
         }
-        Page<Post> postPage = postRepository.findByAuthorIdIn(followingIds, PageRequest.of(page, size));
+        Page<Post> postPage = postRepository.findByAuthorIdIn(followingIds, utcNow(), PageRequest.of(page, size));
         return buildPagedResponse(postPage);
     }
 
@@ -354,14 +356,15 @@ public class PostService {
                 .map(com.phoenix.entity.Tag::getName)
                 .collect(Collectors.toList());
 
+        LocalDateTime now = utcNow();
         // Try tag-based related posts first (up to 4)
         List<Post> related = tagNames.isEmpty()
                 ? List.of()
-                : postRepository.findRelatedPosts(tagNames, id, PageRequest.of(0, 4));
+                : postRepository.findRelatedPosts(tagNames, id, now, PageRequest.of(0, 4));
 
         // Fallback: show recent published posts if no tag matches found
         if (related.isEmpty()) {
-            related = postRepository.findRecentPostsExcluding(id, PageRequest.of(0, 3));
+            related = postRepository.findRecentPostsExcluding(id, now, PageRequest.of(0, 3));
         }
 
         return related.stream()

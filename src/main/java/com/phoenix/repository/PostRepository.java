@@ -27,102 +27,106 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
     Page<Post> findByStatusAndTitleContainingIgnoreCase(com.phoenix.entity.PostStatus status, String title, Pageable pageable);
     List<Post> findByAuthorEmailAndStatus(String authorEmail, com.phoenix.entity.PostStatus status);
 
-    @Query("select p from Post p where p.author.email = :authorEmail and (p.status = 'DRAFT' or (p.status = 'PUBLISHED' and p.scheduledPublishAt is not null and p.scheduledPublishAt > CURRENT_TIMESTAMP)) order by p.updatedAt desc")
-    List<Post> findDraftAndScheduledByAuthorEmail(@Param("authorEmail") String authorEmail);
+    @Query("select p from Post p where p.author.email = :authorEmail and (p.status = 'DRAFT' or (p.status = 'PUBLISHED' and p.scheduledPublishAt is not null and p.scheduledPublishAt > :now)) order by p.updatedAt desc")
+    List<Post> findDraftAndScheduledByAuthorEmail(@Param("authorEmail") String authorEmail, @Param("now") LocalDateTime now);
 
     List<Post> findByStatusAndScheduledPublishAtLessThanEqual(com.phoenix.entity.PostStatus status, LocalDateTime dateTime);
 
     @Query(
-        value = "select p from Post p where p.status = 'PUBLISHED' and (p.scheduledPublishAt is null or p.scheduledPublishAt <= CURRENT_TIMESTAMP) order by p.createdAt desc",
-        countQuery = "select count(p) from Post p where p.status = 'PUBLISHED' and (p.scheduledPublishAt is null or p.scheduledPublishAt <= CURRENT_TIMESTAMP)"
+        value = "select p from Post p where p.status = 'PUBLISHED' and (p.scheduledPublishAt is null or p.scheduledPublishAt <= :now) order by p.createdAt desc",
+        countQuery = "select count(p) from Post p where p.status = 'PUBLISHED' and (p.scheduledPublishAt is null or p.scheduledPublishAt <= :now)"
     )
-    Page<Post> findVisible(Pageable pageable);
+    Page<Post> findVisible(@Param("now") LocalDateTime now, Pageable pageable);
 
     @Query(
-        value = "select p from Post p where p.status = 'PUBLISHED' and (p.scheduledPublishAt is null or p.scheduledPublishAt <= CURRENT_TIMESTAMP) and lower(p.title) like lower(concat('%', :title, '%')) order by p.createdAt desc",
-        countQuery = "select count(p) from Post p where p.status = 'PUBLISHED' and (p.scheduledPublishAt is null or p.scheduledPublishAt <= CURRENT_TIMESTAMP) and lower(p.title) like lower(concat('%', :title, '%'))"
+        value = "select p from Post p where p.status = 'PUBLISHED' and (p.scheduledPublishAt is null or p.scheduledPublishAt <= :now) and lower(p.title) like lower(concat('%', :title, '%')) order by p.createdAt desc",
+        countQuery = "select count(p) from Post p where p.status = 'PUBLISHED' and (p.scheduledPublishAt is null or p.scheduledPublishAt <= :now) and lower(p.title) like lower(concat('%', :title, '%'))"
     )
-    Page<Post> findVisibleByTitle(@Param("title") String title, Pageable pageable);
+    Page<Post> findVisibleByTitle(@Param("title") String title, @Param("now") LocalDateTime now, Pageable pageable);
 
     @Query(
-        value = "select p from Post p join p.tags t where p.status = 'PUBLISHED' and (p.scheduledPublishAt is null or p.scheduledPublishAt <= CURRENT_TIMESTAMP) and t.name = :tag order by p.createdAt desc",
-        countQuery = "select count(p) from Post p join p.tags t where p.status = 'PUBLISHED' and (p.scheduledPublishAt is null or p.scheduledPublishAt <= CURRENT_TIMESTAMP) and t.name = :tag"
+        value = "select p from Post p join p.tags t where p.status = 'PUBLISHED' and (p.scheduledPublishAt is null or p.scheduledPublishAt <= :now) and t.name = :tag order by p.createdAt desc",
+        countQuery = "select count(p) from Post p join p.tags t where p.status = 'PUBLISHED' and (p.scheduledPublishAt is null or p.scheduledPublishAt <= :now) and t.name = :tag"
     )
-    Page<Post> findVisibleByTag(@Param("tag") String tag, Pageable pageable);
+    Page<Post> findVisibleByTag(@Param("tag") String tag, @Param("now") LocalDateTime now, Pageable pageable);
 
     @Query(
-        value = "select p from Post p join p.tags t where p.status = 'PUBLISHED' and (p.scheduledPublishAt is null or p.scheduledPublishAt <= CURRENT_TIMESTAMP) and lower(p.title) like lower(concat('%', :title, '%')) and t.name = :tag order by p.createdAt desc",
-        countQuery = "select count(p) from Post p join p.tags t where p.status = 'PUBLISHED' and (p.scheduledPublishAt is null or p.scheduledPublishAt <= CURRENT_TIMESTAMP) and lower(p.title) like lower(concat('%', :title, '%')) and t.name = :tag"
+        value = "select p from Post p join p.tags t where p.status = 'PUBLISHED' and (p.scheduledPublishAt is null or p.scheduledPublishAt <= :now) and lower(p.title) like lower(concat('%', :title, '%')) and t.name = :tag order by p.createdAt desc",
+        countQuery = "select count(p) from Post p join p.tags t where p.status = 'PUBLISHED' and (p.scheduledPublishAt is null or p.scheduledPublishAt <= :now) and lower(p.title) like lower(concat('%', :title, '%')) and t.name = :tag"
     )
-    Page<Post> findVisibleByTitleAndTag(@Param("title") String title, @Param("tag") String tag, Pageable pageable);
+    Page<Post> findVisibleByTitleAndTag(@Param("title") String title, @Param("tag") String tag, @Param("now") LocalDateTime now, Pageable pageable);
 
     @Query(
-        value = "select p from Post p left join Like l on l.post = p where p.status = 'PUBLISHED' and (p.scheduledPublishAt is null or p.scheduledPublishAt <= CURRENT_TIMESTAMP) group by p order by count(l) desc, p.createdAt desc",
-        countQuery = "select count(p) from Post p where p.status = 'PUBLISHED' and (p.scheduledPublishAt is null or p.scheduledPublishAt <= CURRENT_TIMESTAMP)"
+        value = "select p from Post p left join Like l on l.post = p where p.status = 'PUBLISHED' and (p.scheduledPublishAt is null or p.scheduledPublishAt <= :now) group by p order by count(l) desc, p.createdAt desc",
+        countQuery = "select count(p) from Post p where p.status = 'PUBLISHED' and (p.scheduledPublishAt is null or p.scheduledPublishAt <= :now)"
     )
-    Page<Post> findAllOrderByLikeCountDesc(Pageable pageable);
+    Page<Post> findAllOrderByLikeCountDesc(@Param("now") LocalDateTime now, Pageable pageable);
 
     @Query(
         value = "select p from Post p left join Like l on l.post = p " +
-            "where p.status = 'PUBLISHED' and (p.scheduledPublishAt is null or p.scheduledPublishAt <= CURRENT_TIMESTAMP) and lower(p.title) like lower(concat('%', :title, '%')) " +
+            "where p.status = 'PUBLISHED' and (p.scheduledPublishAt is null or p.scheduledPublishAt <= :now) and lower(p.title) like lower(concat('%', :title, '%')) " +
             "group by p order by count(l) desc, p.createdAt desc",
         countQuery = "select count(p) from Post p " +
-            "where p.status = 'PUBLISHED' and (p.scheduledPublishAt is null or p.scheduledPublishAt <= CURRENT_TIMESTAMP) and lower(p.title) like lower(concat('%', :title, '%'))"
+            "where p.status = 'PUBLISHED' and (p.scheduledPublishAt is null or p.scheduledPublishAt <= :now) and lower(p.title) like lower(concat('%', :title, '%'))"
     )
     Page<Post> findByTitleContainingIgnoreCaseOrderByLikeCountDesc(
         @Param("title") String title,
+        @Param("now") LocalDateTime now,
         Pageable pageable
     );
 
     @Query(
         value = "select p from Post p left join Like l on l.post = p join p.tags t " +
-            "where p.status = 'PUBLISHED' and (p.scheduledPublishAt is null or p.scheduledPublishAt <= CURRENT_TIMESTAMP) and t.name = :tag group by p order by count(l) desc, p.createdAt desc",
-        countQuery = "select count(p) from Post p join p.tags t where p.status = 'PUBLISHED' and (p.scheduledPublishAt is null or p.scheduledPublishAt <= CURRENT_TIMESTAMP) and t.name = :tag"
+            "where p.status = 'PUBLISHED' and (p.scheduledPublishAt is null or p.scheduledPublishAt <= :now) and t.name = :tag group by p order by count(l) desc, p.createdAt desc",
+        countQuery = "select count(p) from Post p join p.tags t where p.status = 'PUBLISHED' and (p.scheduledPublishAt is null or p.scheduledPublishAt <= :now) and t.name = :tag"
     )
     Page<Post> findByTagNameOrderByLikeCountDesc(
         @Param("tag") String tag,
+        @Param("now") LocalDateTime now,
         Pageable pageable
     );
 
     @Query(
         value = "select p from Post p left join Like l on l.post = p join p.tags t " +
-            "where p.status = 'PUBLISHED' and (p.scheduledPublishAt is null or p.scheduledPublishAt <= CURRENT_TIMESTAMP) and lower(p.title) like lower(concat('%', :title, '%')) and t.name = :tag " +
+            "where p.status = 'PUBLISHED' and (p.scheduledPublishAt is null or p.scheduledPublishAt <= :now) and lower(p.title) like lower(concat('%', :title, '%')) and t.name = :tag " +
             "group by p order by count(l) desc, p.createdAt desc",
         countQuery = "select count(p) from Post p join p.tags t " +
-            "where p.status = 'PUBLISHED' and (p.scheduledPublishAt is null or p.scheduledPublishAt <= CURRENT_TIMESTAMP) and lower(p.title) like lower(concat('%', :title, '%')) and t.name = :tag"
+            "where p.status = 'PUBLISHED' and (p.scheduledPublishAt is null or p.scheduledPublishAt <= :now) and lower(p.title) like lower(concat('%', :title, '%')) and t.name = :tag"
     )
     Page<Post> findByTitleContainingIgnoreCaseAndTagNameOrderByLikeCountDesc(
         @Param("title") String title,
         @Param("tag") String tag,
+        @Param("now") LocalDateTime now,
         Pageable pageable
     );
 
     @Query(
-        "select p from Post p join p.tags t where p.status = 'PUBLISHED' and (p.scheduledPublishAt is null or p.scheduledPublishAt <= CURRENT_TIMESTAMP) and t.name in :tagNames and p.id != :excludeId " +
+        "select p from Post p join p.tags t where p.status = 'PUBLISHED' and (p.scheduledPublishAt is null or p.scheduledPublishAt <= :now) and t.name in :tagNames and p.id != :excludeId " +
         "group by p order by count(t) desc, p.createdAt desc"
     )
     List<Post> findRelatedPosts(
         @Param("tagNames") List<String> tagNames,
         @Param("excludeId") UUID excludeId,
+        @Param("now") LocalDateTime now,
         Pageable pageable
     );
 
-    @Query("select p from Post p where p.status = 'PUBLISHED' and (p.scheduledPublishAt is null or p.scheduledPublishAt <= CURRENT_TIMESTAMP) and p.id != :excludeId order by p.createdAt desc")
-    List<Post> findRecentPostsExcluding(@Param("excludeId") UUID excludeId, Pageable pageable);
+    @Query("select p from Post p where p.status = 'PUBLISHED' and (p.scheduledPublishAt is null or p.scheduledPublishAt <= :now) and p.id != :excludeId order by p.createdAt desc")
+    List<Post> findRecentPostsExcluding(@Param("excludeId") UUID excludeId, @Param("now") LocalDateTime now, Pageable pageable);
 
     @Query(
-        value = "select p from Post p where p.status = 'PUBLISHED' and (p.scheduledPublishAt is null or p.scheduledPublishAt <= CURRENT_TIMESTAMP) and p.author.id in :authorIds order by p.createdAt desc",
-        countQuery = "select count(p) from Post p where p.status = 'PUBLISHED' and (p.scheduledPublishAt is null or p.scheduledPublishAt <= CURRENT_TIMESTAMP) and p.author.id in :authorIds"
+        value = "select p from Post p where p.status = 'PUBLISHED' and (p.scheduledPublishAt is null or p.scheduledPublishAt <= :now) and p.author.id in :authorIds order by p.createdAt desc",
+        countQuery = "select count(p) from Post p where p.status = 'PUBLISHED' and (p.scheduledPublishAt is null or p.scheduledPublishAt <= :now) and p.author.id in :authorIds"
     )
-    Page<Post> findByAuthorIdIn(@Param("authorIds") List<UUID> authorIds, Pageable pageable);
+    Page<Post> findByAuthorIdIn(@Param("authorIds") List<UUID> authorIds, @Param("now") LocalDateTime now, Pageable pageable);
 
     @Query(
         value = "select p from Post p left join Like l on l.post = p " +
-            "where p.status = 'PUBLISHED' and (p.scheduledPublishAt is null or p.scheduledPublishAt <= CURRENT_TIMESTAMP) and p.createdAt >= :since " +
+            "where p.status = 'PUBLISHED' and (p.scheduledPublishAt is null or p.scheduledPublishAt <= :now) and p.createdAt >= :since " +
             "group by p order by count(l) desc, p.viewCount desc, p.createdAt desc",
-        countQuery = "select count(p) from Post p where p.status = 'PUBLISHED' and (p.scheduledPublishAt is null or p.scheduledPublishAt <= CURRENT_TIMESTAMP) and p.createdAt >= :since"
+        countQuery = "select count(p) from Post p where p.status = 'PUBLISHED' and (p.scheduledPublishAt is null or p.scheduledPublishAt <= :now) and p.createdAt >= :since"
     )
-    List<Post> findTopPostsSince(@Param("since") java.time.LocalDateTime since, Pageable pageable);
+    List<Post> findTopPostsSince(@Param("since") java.time.LocalDateTime since, @Param("now") java.time.LocalDateTime now, Pageable pageable);
 
     // Series helpers
     List<Post> findBySeries_IdOrderBySeriesOrder(UUID seriesId);
