@@ -1,6 +1,7 @@
 package com.phoenix.repository;
 
 import com.phoenix.entity.Post;
+import com.phoenix.entity.ReactionType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -33,63 +34,65 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
     List<Post> findByStatusAndScheduledPublishAtLessThanEqual(com.phoenix.entity.PostStatus status, LocalDateTime dateTime);
 
     @Query(
-        value = "select p from Post p where p.status = 'PUBLISHED' and (p.scheduledPublishAt is null or p.scheduledPublishAt <= :now) order by p.createdAt desc",
+        value = "select p from Post p where p.status = 'PUBLISHED' and (p.scheduledPublishAt is null or p.scheduledPublishAt <= :now)",
         countQuery = "select count(p) from Post p where p.status = 'PUBLISHED' and (p.scheduledPublishAt is null or p.scheduledPublishAt <= :now)"
     )
     Page<Post> findVisible(@Param("now") LocalDateTime now, Pageable pageable);
 
     @Query(
-        value = "select p from Post p where p.status = 'PUBLISHED' and (p.scheduledPublishAt is null or p.scheduledPublishAt <= :now) and lower(p.title) like lower(concat('%', :title, '%')) order by p.createdAt desc",
+        value = "select p from Post p where p.status = 'PUBLISHED' and (p.scheduledPublishAt is null or p.scheduledPublishAt <= :now) and lower(p.title) like lower(concat('%', :title, '%'))",
         countQuery = "select count(p) from Post p where p.status = 'PUBLISHED' and (p.scheduledPublishAt is null or p.scheduledPublishAt <= :now) and lower(p.title) like lower(concat('%', :title, '%'))"
     )
     Page<Post> findVisibleByTitle(@Param("title") String title, @Param("now") LocalDateTime now, Pageable pageable);
 
     @Query(
-        value = "select p from Post p join p.tags t where p.status = 'PUBLISHED' and (p.scheduledPublishAt is null or p.scheduledPublishAt <= :now) and t.name = :tag order by p.createdAt desc",
+        value = "select p from Post p join p.tags t where p.status = 'PUBLISHED' and (p.scheduledPublishAt is null or p.scheduledPublishAt <= :now) and t.name = :tag",
         countQuery = "select count(p) from Post p join p.tags t where p.status = 'PUBLISHED' and (p.scheduledPublishAt is null or p.scheduledPublishAt <= :now) and t.name = :tag"
     )
     Page<Post> findVisibleByTag(@Param("tag") String tag, @Param("now") LocalDateTime now, Pageable pageable);
 
     @Query(
-        value = "select p from Post p join p.tags t where p.status = 'PUBLISHED' and (p.scheduledPublishAt is null or p.scheduledPublishAt <= :now) and lower(p.title) like lower(concat('%', :title, '%')) and t.name = :tag order by p.createdAt desc",
+        value = "select p from Post p join p.tags t where p.status = 'PUBLISHED' and (p.scheduledPublishAt is null or p.scheduledPublishAt <= :now) and lower(p.title) like lower(concat('%', :title, '%')) and t.name = :tag",
         countQuery = "select count(p) from Post p join p.tags t where p.status = 'PUBLISHED' and (p.scheduledPublishAt is null or p.scheduledPublishAt <= :now) and lower(p.title) like lower(concat('%', :title, '%')) and t.name = :tag"
     )
     Page<Post> findVisibleByTitleAndTag(@Param("title") String title, @Param("tag") String tag, @Param("now") LocalDateTime now, Pageable pageable);
 
     @Query(
-        value = "select p from Post p left join Like l on l.post = p where p.status = 'PUBLISHED' and (p.scheduledPublishAt is null or p.scheduledPublishAt <= :now) group by p order by count(l) desc, p.createdAt desc",
+        value = "select p from Post p left join Reaction r on r.post = p and r.type = :likeType where p.status = 'PUBLISHED' and (p.scheduledPublishAt is null or p.scheduledPublishAt <= :now) group by p order by count(r) desc, p.createdAt desc",
         countQuery = "select count(p) from Post p where p.status = 'PUBLISHED' and (p.scheduledPublishAt is null or p.scheduledPublishAt <= :now)"
     )
-    Page<Post> findAllOrderByLikeCountDesc(@Param("now") LocalDateTime now, Pageable pageable);
+    Page<Post> findAllOrderByLikeCountDesc(@Param("now") LocalDateTime now, @Param("likeType") ReactionType likeType, Pageable pageable);
 
     @Query(
-        value = "select p from Post p left join Like l on l.post = p " +
+        value = "select p from Post p left join Reaction r on r.post = p and r.type = :likeType " +
             "where p.status = 'PUBLISHED' and (p.scheduledPublishAt is null or p.scheduledPublishAt <= :now) and lower(p.title) like lower(concat('%', :title, '%')) " +
-            "group by p order by count(l) desc, p.createdAt desc",
+            "group by p order by count(r) desc, p.createdAt desc",
         countQuery = "select count(p) from Post p " +
             "where p.status = 'PUBLISHED' and (p.scheduledPublishAt is null or p.scheduledPublishAt <= :now) and lower(p.title) like lower(concat('%', :title, '%'))"
     )
     Page<Post> findByTitleContainingIgnoreCaseOrderByLikeCountDesc(
         @Param("title") String title,
         @Param("now") LocalDateTime now,
+        @Param("likeType") ReactionType likeType,
         Pageable pageable
     );
 
     @Query(
-        value = "select p from Post p left join Like l on l.post = p join p.tags t " +
-            "where p.status = 'PUBLISHED' and (p.scheduledPublishAt is null or p.scheduledPublishAt <= :now) and t.name = :tag group by p order by count(l) desc, p.createdAt desc",
+        value = "select p from Post p left join Reaction r on r.post = p and r.type = :likeType join p.tags t " +
+            "where p.status = 'PUBLISHED' and (p.scheduledPublishAt is null or p.scheduledPublishAt <= :now) and t.name = :tag group by p order by count(r) desc, p.createdAt desc",
         countQuery = "select count(p) from Post p join p.tags t where p.status = 'PUBLISHED' and (p.scheduledPublishAt is null or p.scheduledPublishAt <= :now) and t.name = :tag"
     )
     Page<Post> findByTagNameOrderByLikeCountDesc(
         @Param("tag") String tag,
         @Param("now") LocalDateTime now,
+        @Param("likeType") ReactionType likeType,
         Pageable pageable
     );
 
     @Query(
-        value = "select p from Post p left join Like l on l.post = p join p.tags t " +
+        value = "select p from Post p left join Reaction r on r.post = p and r.type = :likeType join p.tags t " +
             "where p.status = 'PUBLISHED' and (p.scheduledPublishAt is null or p.scheduledPublishAt <= :now) and lower(p.title) like lower(concat('%', :title, '%')) and t.name = :tag " +
-            "group by p order by count(l) desc, p.createdAt desc",
+            "group by p order by count(r) desc, p.createdAt desc",
         countQuery = "select count(p) from Post p join p.tags t " +
             "where p.status = 'PUBLISHED' and (p.scheduledPublishAt is null or p.scheduledPublishAt <= :now) and lower(p.title) like lower(concat('%', :title, '%')) and t.name = :tag"
     )
@@ -97,6 +100,7 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
         @Param("title") String title,
         @Param("tag") String tag,
         @Param("now") LocalDateTime now,
+        @Param("likeType") ReactionType likeType,
         Pageable pageable
     );
 

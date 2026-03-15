@@ -76,12 +76,12 @@ public class PostService {
         if (tag != null && !tag.trim().isEmpty()) {
             String t = tag.trim().toLowerCase();
             if (isMostLiked(sort)) {
-                postPage = postRepository.findByTagNameOrderByLikeCountDesc(t, now, PageRequest.of(page, size));
+                postPage = postRepository.findByTagNameOrderByLikeCountDesc(t, now, ReactionType.LIKE, PageRequest.of(page, size));
             } else {
                 postPage = postRepository.findVisibleByTag(t, now, buildPageable(page, size, sort));
             }
         } else if (isMostLiked(sort)) {
-            postPage = postRepository.findAllOrderByLikeCountDesc(now, PageRequest.of(page, size));
+            postPage = postRepository.findAllOrderByLikeCountDesc(now, ReactionType.LIKE, PageRequest.of(page, size));
         } else {
             postPage = postRepository.findVisible(now, buildPageable(page, size, sort));
         }
@@ -102,12 +102,12 @@ public class PostService {
             String t = tag.trim().toLowerCase();
             if (isMostLiked(sort)) {
                 postPage = postRepository.findByTitleContainingIgnoreCaseAndTagNameOrderByLikeCountDesc(
-                        query.trim(), t, now, PageRequest.of(page, size));
+                        query.trim(), t, now, ReactionType.LIKE, PageRequest.of(page, size));
             } else {
                 postPage = postRepository.findVisibleByTitleAndTag(query.trim(), t, now, pageable);
             }
         } else if (isMostLiked(sort)) {
-            postPage = postRepository.findByTitleContainingIgnoreCaseOrderByLikeCountDesc(query.trim(), now, PageRequest.of(page, size));
+            postPage = postRepository.findByTitleContainingIgnoreCaseOrderByLikeCountDesc(query.trim(), now, ReactionType.LIKE, PageRequest.of(page, size));
         } else {
             postPage = postRepository.findVisibleByTitle(query.trim(), now, pageable);
         }
@@ -337,7 +337,7 @@ public class PostService {
 
     @Transactional
     public PagedResponse<PostResponse> getTrendingPosts(int page, int size) {
-        Page<Post> postPage = postRepository.findAllOrderByLikeCountDesc(utcNow(), PageRequest.of(page, size));
+        Page<Post> postPage = postRepository.findAllOrderByLikeCountDesc(utcNow(), ReactionType.LIKE, PageRequest.of(page, size));
         return buildPagedResponse(postPage);
     }
 
@@ -386,7 +386,7 @@ public class PostService {
     }
 
     PostResponse convertToResponse(Post post) {
-        long likeCount = likeRepository.countByPostId(post.getId());
+        long likeCount = reactionRepository.countByPostIdAndType(post.getId(), ReactionType.LIKE);
         boolean likedByCurrentUser = false;
         boolean paidByCurrentUser = false;
         boolean isAuthor = false;
@@ -415,7 +415,6 @@ public class PostService {
 
         if (currentUser != null) {
             final UUID userId = currentUser.getId();
-            likedByCurrentUser = likeRepository.existsByPostIdAndUserId(post.getId(), userId);
             isAuthor = post.getAuthor().getId().equals(userId);
             if (post.isPremium() && !isAuthor) {
                 paidByCurrentUser = paymentRepository
@@ -425,6 +424,7 @@ public class PostService {
             // Get current user's reaction
             java.util.Optional<Reaction> userReaction = reactionRepository.findByPostIdAndUserId(post.getId(), userId);
             currentUserReaction = userReaction.map(Reaction::getType).orElse(null);
+            likedByCurrentUser = currentUserReaction == ReactionType.LIKE;
         }
 
         boolean bookmarkedByCurrentUser = currentUser != null
