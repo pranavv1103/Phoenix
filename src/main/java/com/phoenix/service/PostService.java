@@ -463,9 +463,14 @@ public class PostService {
             return null;
         }
 
+        // Copy to a plain list so JSON serialization never touches a lazy JPA proxy.
+        List<String> keyTakeaways = summary.getKeyTakeaways() == null
+            ? List.of()
+            : new ArrayList<>(summary.getKeyTakeaways());
+
         return PostAiSummaryResponse.builder()
                 .oneSentenceSummary(summary.getOneSentenceSummary())
-                .keyTakeaways(summary.getKeyTakeaways() == null ? List.of() : summary.getKeyTakeaways())
+            .keyTakeaways(keyTakeaways)
                 .estimatedReadingTimeMinutes(
                         summary.getEstimatedReadingTimeMinutes() != null
                                 ? summary.getEstimatedReadingTimeMinutes()
