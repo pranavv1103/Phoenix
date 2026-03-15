@@ -27,20 +27,14 @@ const parseLocalDateTime = (value) => {
 
 const toDateTimeLocalValue = (value) => {
   if (!value) return '';
-  const hasTimezone = /[zZ]|[+-]\d{2}:\d{2}$/.test(value);
-  const utcLike = hasTimezone ? value : `${value}Z`;
-  const date = new Date(utcLike);
-  if (Number.isNaN(date.getTime())) return '';
-  const timezoneOffset = date.getTimezoneOffset() * 60000;
-  return new Date(date.getTime() - timezoneOffset).toISOString().slice(0, 16);
+  const normalized = value.replace(' ', 'T');
+  return normalized.length >= 16 ? normalized.slice(0, 16) : '';
 };
 
 const normalizeDateTimeLocal = (value) => {
   if (!value) return null;
-  const date = parseLocalDateTime(value);
-  if (!date) return null;
-  // Send UTC wall-clock as LocalDateTime-friendly string (without trailing Z).
-  return date.toISOString().slice(0, 19);
+  const localValue = value.length === 16 ? `${value}:00` : value;
+  return localValue.slice(0, 19);
 };
 
 const getMinScheduleLocalValue = () =>
