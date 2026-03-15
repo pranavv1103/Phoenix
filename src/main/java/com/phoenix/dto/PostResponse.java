@@ -51,4 +51,5 @@ public class PostResponse {
     private String seriesName;
     private int seriesOrder;
     private int seriesSize;
+    private PostAiSummaryResponse aiSummary;
 }

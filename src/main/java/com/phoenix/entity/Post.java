@@ -79,6 +79,10 @@ public class Post {
     @Builder.Default
     private long viewCount = 0;
 
+    @Embedded
+    @Builder.Default
+    private PostAiSummary aiSummary = new PostAiSummary();
+
     @CreatedDate
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;

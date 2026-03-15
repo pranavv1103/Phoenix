@@ -249,6 +249,8 @@ export default function PostDetailPage() {
   const postAuthorInitial = postAuthorName.charAt(0).toUpperCase();
   const postContent = typeof post.content === 'string' ? post.content : String(post.content ?? '');
   const authorColor = colorFromString(postAuthorName);
+  const aiSummary = post.aiSummary;
+  const aiTakeaways = aiSummary?.keyTakeaways || [];
 
   return (
     <>
@@ -380,6 +382,55 @@ export default function PostDetailPage() {
                   </span>
                 ))}
               </div>
+            )}
+
+            {/* AI summary */}
+            {aiSummary?.oneSentenceSummary && (
+              <section className="mb-8 rounded-2xl border border-emerald-200 dark:border-emerald-800/60 bg-emerald-50/70 dark:bg-emerald-900/10 p-5 sm:p-6">
+                <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
+                  <h2 className="text-sm uppercase tracking-wide font-bold text-emerald-700 dark:text-emerald-400">
+                    AI Summary
+                  </h2>
+                  <div className="flex items-center gap-2 text-xs font-semibold">
+                    <span className="px-2 py-1 rounded-full bg-white/80 dark:bg-slate-900/60 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300">
+                      {aiSummary.estimatedReadingTimeMinutes || post.readingTimeMinutes || 1} min read
+                    </span>
+                    <span className="px-2 py-1 rounded-full bg-white/80 dark:bg-slate-900/60 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300">
+                      {aiSummary.difficultyLevel || 'Intermediate'}
+                    </span>
+                  </div>
+                </div>
+
+                <p className="text-base sm:text-lg leading-relaxed text-gray-800 dark:text-slate-100 font-medium mb-4">
+                  {aiSummary.oneSentenceSummary}
+                </p>
+
+                {aiTakeaways.length > 0 && (
+                  <div className="mb-4">
+                    <h3 className="text-xs uppercase tracking-wide font-bold text-gray-600 dark:text-slate-300 mb-2">Key Takeaways</h3>
+                    <ul className="space-y-2">
+                      {aiTakeaways.map((point, idx) => (
+                        <li key={`${point}-${idx}`} className="flex items-start gap-2 text-sm text-gray-700 dark:text-slate-200">
+                          <span className="mt-1 h-2 w-2 rounded-full bg-emerald-500 flex-shrink-0" />
+                          <span>{point}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {aiSummary.explainSimply && (
+                  <details className="group rounded-xl border border-emerald-200/80 dark:border-emerald-800/60 bg-white/70 dark:bg-slate-900/40">
+                    <summary className="cursor-pointer list-none px-4 py-3 text-sm font-semibold text-emerald-700 dark:text-emerald-300 flex items-center justify-between">
+                      Explain Simply
+                      <span className="text-xs opacity-70 group-open:rotate-180 transition-transform">v</span>
+                    </summary>
+                    <p className="px-4 pb-4 text-sm text-gray-700 dark:text-slate-200 leading-relaxed">
+                      {aiSummary.explainSimply}
+                    </p>
+                  </details>
+                )}
+              </section>
             )}
 
             {/* Content — gated for premium posts */}

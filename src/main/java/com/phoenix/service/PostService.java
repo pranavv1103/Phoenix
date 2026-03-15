@@ -1,9 +1,11 @@
 package com.phoenix.service;
 
 import com.phoenix.dto.PagedResponse;
+import com.phoenix.dto.PostAiSummaryResponse;
 import com.phoenix.dto.PostRequest;
 import com.phoenix.dto.PostResponse;
 import com.phoenix.entity.Post;
+import com.phoenix.entity.PostAiSummary;
 import com.phoenix.entity.PostStatus;
 import com.phoenix.entity.Reaction;
 import com.phoenix.entity.ReactionType;
@@ -58,6 +60,7 @@ public class PostService {
     private final TagRepository tagRepository;
     private final FollowRepository followRepository;
     private final SeriesRepository seriesRepository;
+    private final PostAiSummaryGenerator postAiSummaryGenerator;
 
     @Transactional
     public PagedResponse<PostResponse> getAllPosts(int page, int size, String sort, String tag) {
@@ -185,6 +188,8 @@ public class PostService {
             post.setTags(resolveOrCreateTags(request.getTags()));
         }
 
+        refreshAiSummary(post);
+
         Post savedPost = postRepository.save(Objects.requireNonNull(post));
         return convertToResponse(savedPost);
     }
@@ -220,6 +225,7 @@ public class PostService {
             post.setSeries(null);
         }
         post.setSeriesOrder(request.getSeriesOrder());
+        refreshAiSummary(post);
 
         Post updatedPost = postRepository.save(post);
         return convertToResponse(updatedPost);
@@ -380,6 +386,14 @@ public class PostService {
                 fullContent.trim().split("\\s+").length;
         int readingTimeMinutes = Math.max(1, (int) Math.ceil(wordCount / 200.0));
 
+        // Keep a stable AI summary payload. For older posts, compute once lazily.
+        PostAiSummary summary = post.getAiSummary();
+        if (summary == null || summary.getOneSentenceSummary() == null || summary.getOneSentenceSummary().isBlank()) {
+            refreshAiSummary(post);
+            summary = post.getAiSummary();
+            postRepository.save(post);
+        }
+
         List<String> tagNames = (post.getTags() != null)
                 ? post.getTags().stream().map(Tag::getName).collect(Collectors.toList())
                 : new ArrayList<>();
@@ -426,6 +440,40 @@ public class PostService {
                 .seriesName(seriesName)
                 .seriesOrder(seriesOrder)
                 .seriesSize(seriesSize)
+                .aiSummary(toAiSummaryResponse(summary, readingTimeMinutes))
+                .build();
+    }
+
+    private void refreshAiSummary(Post post) {
+        String content = post.getContent() == null ? "" : post.getContent();
+        int readingTimeMinutes = Math.max(1, (int) Math.ceil((double) countWords(content) / 200.0));
+        PostAiSummary summary = postAiSummaryGenerator.generate(post.getTitle(), content, readingTimeMinutes);
+        post.setAiSummary(summary);
+    }
+
+    private int countWords(String content) {
+        if (content == null || content.isBlank()) {
+            return 0;
+        }
+        return content.trim().split("\\s+").length;
+    }
+
+    private PostAiSummaryResponse toAiSummaryResponse(PostAiSummary summary, int fallbackReadingTime) {
+        if (summary == null) {
+            return null;
+        }
+
+        return PostAiSummaryResponse.builder()
+                .oneSentenceSummary(summary.getOneSentenceSummary())
+                .keyTakeaways(summary.getKeyTakeaways() == null ? List.of() : summary.getKeyTakeaways())
+                .estimatedReadingTimeMinutes(
+                        summary.getEstimatedReadingTimeMinutes() != null
+                                ? summary.getEstimatedReadingTimeMinutes()
+                                : fallbackReadingTime)
+                .difficultyLevel(summary.getDifficultyLevel())
+                .explainSimply(summary.getExplainSimply())
+                .generatedAt(summary.getGeneratedAt())
+                .generatorVersion(summary.getGeneratorVersion())
                 .build();
     }
 
