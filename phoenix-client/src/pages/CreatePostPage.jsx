@@ -43,6 +43,9 @@ const normalizeDateTimeLocal = (value) => {
   return date.toISOString().slice(0, 19);
 };
 
+const getMinScheduleLocalValue = () =>
+  toDateTimeLocalValue(new Date(Date.now() + 2 * 60 * 1000).toISOString());
+
 export default function CreatePostPage() {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
@@ -210,6 +213,14 @@ export default function CreatePostPage() {
       setError('Invalid schedule date/time. Please reselect and try again.');
       setLoading(false);
       return;
+    }
+    if (!saveAsDraft && scheduledPublishAt) {
+      const parsed = parseLocalDateTime(scheduledPublishAt);
+      if (!parsed || parsed.getTime() <= Date.now() + 2 * 60 * 1000) {
+        setError('Scheduled publish time must be at least 2 minutes in the future.');
+        setLoading(false);
+        return;
+      }
     }
     try {
       const priceInPaise = isPremium ? Math.round(parseFloat(price || '0') * 100) : 0;
@@ -517,12 +528,12 @@ export default function CreatePostPage() {
                 )}
               </div>
               <p className="text-xs text-gray-500 dark:text-slate-400 mb-3">
-                Leave empty to publish immediately. Choose a future date and time to auto-publish.
+                Leave empty to publish immediately. Choose a date/time at least 2 minutes in the future to auto-publish.
               </p>
               <input
                 type="datetime-local"
                 value={scheduledPublishAt}
-                min={toDateTimeLocalValue(new Date().toISOString())}
+                min={getMinScheduleLocalValue()}
                 onChange={(e) => setScheduledPublishAt(e.target.value)}
                 className="w-full sm:w-72 px-3 py-2 text-sm border border-indigo-300 dark:border-indigo-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 rounded-lg focus:outline-none focus:border-indigo-500 transition-all"
               />

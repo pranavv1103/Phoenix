@@ -616,7 +616,10 @@ public class PostService {
             return;
         }
 
-        if (scheduleAt != null && scheduleAt.isAfter(now)) {
+        if (scheduleAt != null) {
+            if (!scheduleAt.isAfter(now.plusMinutes(2))) {
+                throw new IllegalArgumentException("Scheduled publish time must be at least 2 minutes in the future");
+            }
             post.setStatus(PostStatus.DRAFT);
             post.setScheduledPublishAt(scheduleAt);
             return;
