@@ -312,14 +312,27 @@ public class PostService {
     @Scheduled(cron = "0 * * * * *")
     @Transactional
     public void publishScheduledPosts() {
-        List<Post> duePosts = postRepository.findByStatusAndScheduledPublishAtLessThanEqual(PostStatus.PUBLISHED, utcNow());
-        if (duePosts.isEmpty()) {
-            return;
-        }
-        for (Post post : duePosts) {
+        LocalDateTime now = utcNow();
+
+        // New behavior: future-scheduled posts stay DRAFT until due.
+        List<Post> dueScheduledDrafts = postRepository.findByStatusAndScheduledPublishAtLessThanEqual(PostStatus.DRAFT, now);
+        for (Post post : dueScheduledDrafts) {
+            post.setStatus(PostStatus.PUBLISHED);
             post.setScheduledPublishAt(null);
         }
-        postRepository.saveAll(duePosts);
+
+        // Backward compatibility for older records created as PUBLISHED+future.
+        List<Post> dueLegacyPublished = postRepository.findByStatusAndScheduledPublishAtLessThanEqual(PostStatus.PUBLISHED, now);
+        for (Post post : dueLegacyPublished) {
+            post.setScheduledPublishAt(null);
+        }
+
+        if (!dueScheduledDrafts.isEmpty()) {
+            postRepository.saveAll(dueScheduledDrafts);
+        }
+        if (!dueLegacyPublished.isEmpty()) {
+            postRepository.saveAll(dueLegacyPublished);
+        }
     }
 
     @Transactional
@@ -454,11 +467,10 @@ public class PostService {
             seriesSize = (int) postRepository.countBySeries_Id(Objects.requireNonNull(seriesId));
         }
 
-        boolean scheduledForFuture = post.getStatus() == PostStatus.PUBLISHED
-            && post.getScheduledPublishAt() != null
+        boolean scheduledForFuture = post.getScheduledPublishAt() != null
             && post.getScheduledPublishAt().isAfter(utcNow());
         String responseStatus = post.getStatus() == PostStatus.DRAFT
-            ? PostStatus.DRAFT.name()
+            ? (scheduledForFuture ? "SCHEDULED" : PostStatus.DRAFT.name())
             : (scheduledForFuture ? "SCHEDULED" : PostStatus.PUBLISHED.name());
 
         return PostResponse.builder()
@@ -605,7 +617,7 @@ public class PostService {
         }
 
         if (scheduleAt != null && scheduleAt.isAfter(now)) {
-            post.setStatus(PostStatus.PUBLISHED);
+            post.setStatus(PostStatus.DRAFT);
             post.setScheduledPublishAt(scheduleAt);
             return;
         }
@@ -616,11 +628,20 @@ public class PostService {
 
     private void publishIfDue(Post post) {
         LocalDateTime now = utcNow();
-        if (post.getStatus() == PostStatus.PUBLISHED
-                && post.getScheduledPublishAt() != null
-                && !post.getScheduledPublishAt().isAfter(now)) {
-            post.setScheduledPublishAt(null);
-            postRepository.save(post);
+        if (post.getScheduledPublishAt() != null && !post.getScheduledPublishAt().isAfter(now)) {
+            // New behavior: scheduled drafts become published at due time.
+            if (post.getStatus() == PostStatus.DRAFT) {
+                post.setStatus(PostStatus.PUBLISHED);
+                post.setScheduledPublishAt(null);
+                postRepository.save(post);
+                return;
+            }
+
+            // Backward compatibility for older records.
+            if (post.getStatus() == PostStatus.PUBLISHED) {
+                post.setScheduledPublishAt(null);
+                postRepository.save(post);
+            }
         }
     }
 

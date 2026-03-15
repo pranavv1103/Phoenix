@@ -27,7 +27,7 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
     Page<Post> findByStatusAndTitleContainingIgnoreCase(com.phoenix.entity.PostStatus status, String title, Pageable pageable);
     List<Post> findByAuthorEmailAndStatus(String authorEmail, com.phoenix.entity.PostStatus status);
 
-    @Query("select p from Post p where p.author.email = :authorEmail and (p.status = 'DRAFT' or (p.status = 'PUBLISHED' and p.scheduledPublishAt is not null and p.scheduledPublishAt > :now)) order by p.updatedAt desc")
+    @Query("select p from Post p where p.author.email = :authorEmail and p.status = 'DRAFT' and (p.scheduledPublishAt is null or p.scheduledPublishAt > :now) order by p.updatedAt desc")
     List<Post> findDraftAndScheduledByAuthorEmail(@Param("authorEmail") String authorEmail, @Param("now") LocalDateTime now);
 
     List<Post> findByStatusAndScheduledPublishAtLessThanEqual(com.phoenix.entity.PostStatus status, LocalDateTime dateTime);
