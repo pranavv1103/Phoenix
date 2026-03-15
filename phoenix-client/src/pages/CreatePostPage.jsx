@@ -6,6 +6,25 @@ import MDEditor from '@uiw/react-md-editor';
 const AUTOSAVE_KEY = 'phoenix_create_post_autosave';
 const AUTOSAVE_INTERVAL = 30000; // 30 seconds
 
+const parseLocalDateTime = (value) => {
+  if (!value) return null;
+  const localValue = value.length === 16 ? `${value}:00` : value;
+  const [datePart, timePart] = localValue.split('T');
+  if (!datePart || !timePart) return null;
+
+  const [year, month, day] = datePart.split('-').map(Number);
+  const [hour, minute, second] = timePart.split(':').map(Number);
+  if (
+    [year, month, day, hour, minute].some(Number.isNaN)
+    || Number.isNaN(second ?? 0)
+  ) {
+    return null;
+  }
+
+  const date = new Date(year, month - 1, day, hour, minute, second || 0);
+  return Number.isNaN(date.getTime()) ? null : date;
+};
+
 const toDateTimeLocalValue = (value) => {
   if (!value) return '';
   const hasTimezone = /[zZ]|[+-]\d{2}:\d{2}$/.test(value);
@@ -18,9 +37,8 @@ const toDateTimeLocalValue = (value) => {
 
 const normalizeDateTimeLocal = (value) => {
   if (!value) return null;
-  const localValue = value.length === 16 ? `${value}:00` : value;
-  const date = new Date(localValue);
-  if (Number.isNaN(date.getTime())) return null;
+  const date = parseLocalDateTime(value);
+  if (!date) return null;
   // Send UTC wall-clock as LocalDateTime-friendly string (without trailing Z).
   return date.toISOString().slice(0, 19);
 };
@@ -187,6 +205,12 @@ export default function CreatePostPage() {
       setLoading(false);
       return;
     }
+    const normalizedSchedule = saveAsDraft ? null : normalizeDateTimeLocal(scheduledPublishAt);
+    if (!saveAsDraft && scheduledPublishAt && !normalizedSchedule) {
+      setError('Invalid schedule date/time. Please reselect and try again.');
+      setLoading(false);
+      return;
+    }
     try {
       const priceInPaise = isPremium ? Math.round(parseFloat(price || '0') * 100) : 0;
       const response = await client.post('/api/posts', {
@@ -196,7 +220,7 @@ export default function CreatePostPage() {
         price: priceInPaise,
         tags,
         saveAsDraft,
-        scheduledPublishAt: saveAsDraft ? null : normalizeDateTimeLocal(scheduledPublishAt),
+        scheduledPublishAt: normalizedSchedule,
         coverImageUrl: coverImageUrl || null,
         seriesId: seriesId || null,
         seriesOrder: seriesId ? seriesOrder : 0,
