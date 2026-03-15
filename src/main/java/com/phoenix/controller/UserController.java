@@ -44,9 +44,11 @@ public class UserController {
         String viewerEmail = userDetails != null ? userDetails.getUsername() : null;
         java.util.Optional<User> viewerOpt = viewerEmail != null ? userRepository.findByEmail(viewerEmail) : java.util.Optional.empty();
 
+        java.time.LocalDateTime now = java.time.LocalDateTime.now();
         java.util.List<com.phoenix.entity.Post> publishedPosts = user.getPosts() != null
                 ? user.getPosts().stream()
-                    .filter(p -> p.getStatus() == null || p.getStatus() == com.phoenix.entity.PostStatus.PUBLISHED)
+                    .filter(p -> p.getStatus() == com.phoenix.entity.PostStatus.PUBLISHED
+                        && (p.getScheduledPublishAt() == null || !p.getScheduledPublishAt().isAfter(now)))
                     .toList()
                 : java.util.List.of();
 
