@@ -44,6 +44,7 @@ import org.springframework.lang.NonNull;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -309,7 +310,7 @@ public class PostService {
     @Scheduled(cron = "0 * * * * *")
     @Transactional
     public void publishScheduledPosts() {
-        List<Post> duePosts = postRepository.findByStatusAndScheduledPublishAtLessThanEqual(PostStatus.PUBLISHED, LocalDateTime.now());
+        List<Post> duePosts = postRepository.findByStatusAndScheduledPublishAtLessThanEqual(PostStatus.PUBLISHED, utcNow());
         if (duePosts.isEmpty()) {
             return;
         }
@@ -452,7 +453,7 @@ public class PostService {
 
         boolean scheduledForFuture = post.getStatus() == PostStatus.PUBLISHED
             && post.getScheduledPublishAt() != null
-            && post.getScheduledPublishAt().isAfter(LocalDateTime.now());
+            && post.getScheduledPublishAt().isAfter(utcNow());
         String responseStatus = post.getStatus() == PostStatus.DRAFT
             ? PostStatus.DRAFT.name()
             : (scheduledForFuture ? "SCHEDULED" : PostStatus.PUBLISHED.name());
@@ -593,13 +594,14 @@ public class PostService {
 
     private void applyPublishingState(Post post, PostRequest request) {
         LocalDateTime scheduleAt = request.getScheduledPublishAt();
+        LocalDateTime now = utcNow();
         if (request.isSaveAsDraft()) {
             post.setStatus(PostStatus.DRAFT);
             post.setScheduledPublishAt(null);
             return;
         }
 
-        if (scheduleAt != null && scheduleAt.isAfter(LocalDateTime.now())) {
+        if (scheduleAt != null && scheduleAt.isAfter(now)) {
             post.setStatus(PostStatus.PUBLISHED);
             post.setScheduledPublishAt(scheduleAt);
             return;
@@ -610,19 +612,25 @@ public class PostService {
     }
 
     private void publishIfDue(Post post) {
+        LocalDateTime now = utcNow();
         if (post.getStatus() == PostStatus.PUBLISHED
                 && post.getScheduledPublishAt() != null
-                && !post.getScheduledPublishAt().isAfter(LocalDateTime.now())) {
+                && !post.getScheduledPublishAt().isAfter(now)) {
             post.setScheduledPublishAt(null);
             postRepository.save(post);
         }
     }
 
     private boolean isPubliclyVisible(Post post) {
+        LocalDateTime now = utcNow();
         if (post.getStatus() != PostStatus.PUBLISHED) {
             return false;
         }
-        return post.getScheduledPublishAt() == null || !post.getScheduledPublishAt().isAfter(LocalDateTime.now());
+        return post.getScheduledPublishAt() == null || !post.getScheduledPublishAt().isAfter(now);
+    }
+
+    private LocalDateTime utcNow() {
+        return LocalDateTime.now(ZoneOffset.UTC);
     }
 
     private int countWords(String content) {

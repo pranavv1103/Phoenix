@@ -6,16 +6,23 @@ import MDEditor from '@uiw/react-md-editor';
 
 const AUTOSAVE_INTERVAL = 30000; // 30 seconds
 
-const toDateTimeLocalValue = (isoString) => {
-  if (!isoString) return '';
-  const date = new Date(isoString);
+const toDateTimeLocalValue = (value) => {
+  if (!value) return '';
+  const hasTimezone = /[zZ]|[+-]\d{2}:\d{2}$/.test(value);
+  const utcLike = hasTimezone ? value : `${value}Z`;
+  const date = new Date(utcLike);
+  if (Number.isNaN(date.getTime())) return '';
   const timezoneOffset = date.getTimezoneOffset() * 60000;
   return new Date(date.getTime() - timezoneOffset).toISOString().slice(0, 16);
 };
 
 const normalizeDateTimeLocal = (value) => {
   if (!value) return null;
-  return value.length === 16 ? `${value}:00` : value;
+  const localValue = value.length === 16 ? `${value}:00` : value;
+  const date = new Date(localValue);
+  if (Number.isNaN(date.getTime())) return null;
+  // Send UTC wall-clock as LocalDateTime-friendly string (without trailing Z).
+  return date.toISOString().slice(0, 19);
 };
 
 export default function EditPostPage() {
