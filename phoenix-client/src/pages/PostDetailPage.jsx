@@ -271,10 +271,10 @@ export default function PostDetailPage() {
           </button>
 
           {/* Main post card */}
-          <article className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-sm overflow-hidden mb-6">
+          <article className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-sm mb-6">
             {/* Cover image hero */}
             {post.coverImageUrl && (
-              <div className="w-full h-56 sm:h-72 overflow-hidden">
+              <div className="w-full h-56 sm:h-72 overflow-hidden rounded-t-2xl">
                 <img src={post.coverImageUrl} alt={post.title} className="w-full h-full object-cover" />
               </div>
             )}
