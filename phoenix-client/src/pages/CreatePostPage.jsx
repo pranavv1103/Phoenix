@@ -28,17 +28,25 @@ const parseLocalDateTime = (value) => {
 const toDateTimeLocalValue = (value) => {
   if (!value) return '';
   const normalized = value.replace(' ', 'T');
-  return normalized.length >= 16 ? normalized.slice(0, 16) : '';
+  const utcText = normalized.length === 19 ? `${normalized}Z` : normalized;
+  const date = new Date(utcText);
+  if (Number.isNaN(date.getTime())) return '';
+  const yyyy = date.getFullYear();
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const dd = String(date.getDate()).padStart(2, '0');
+  const hh = String(date.getHours()).padStart(2, '0');
+  const min = String(date.getMinutes()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}T${hh}:${min}`;
 };
 
 const normalizeDateTimeLocal = (value) => {
-  if (!value) return null;
-  const localValue = value.length === 16 ? `${value}:00` : value;
-  return localValue.slice(0, 19);
+  const parsed = parseLocalDateTime(value);
+  if (!parsed) return null;
+  return parsed.toISOString().slice(0, 19);
 };
 
 const getMinScheduleLocalValue = () =>
-  toDateTimeLocalValue(new Date().toISOString());
+  toDateTimeLocalValue(new Date().toISOString().slice(0, 19));
 
 export default function CreatePostPage() {
   const [title, setTitle] = useState('');

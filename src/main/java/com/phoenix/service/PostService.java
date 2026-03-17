@@ -44,7 +44,7 @@ import org.springframework.lang.NonNull;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -657,7 +657,7 @@ public class PostService {
     }
 
     private LocalDateTime utcNow() {
-        return LocalDateTime.now(ZoneId.of("America/New_York"));
+        return LocalDateTime.now(ZoneOffset.UTC);
     }
 
     private int countWords(String content) {
