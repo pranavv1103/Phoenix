@@ -12,6 +12,7 @@ import ProfilePage from './pages/ProfilePage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import SeriesPage from './pages/SeriesPage';
+import AiAssistantPage from './pages/AiAssistantPage';
 
 function App() {
   return (
@@ -74,6 +75,14 @@ function App() {
           <Route
             path="/series/:id"
             element={<SeriesPage />}
+          />
+          <Route
+            path="/ai-assistant"
+            element={
+              <ProtectedRoute>
+                <AiAssistantPage />
+              </ProtectedRoute>
+            }
           />
         </Routes>
       </div>
